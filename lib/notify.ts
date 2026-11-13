@@ -1,6 +1,7 @@
 import "server-only";
-import { adminClient } from "./supabase/admin";
+import { rateLimit } from "./rate-limit";
 import { sendSms } from "./sms";
+import { adminClient } from "./supabase/admin";
 
 type Item = { product_name: string; size: string; quantity: number };
 
@@ -28,4 +29,9 @@ export async function notifyNewOrder(orderId: string, kind: "paid_online" | "pay
   } catch (e) {
     console.error("notifyNewOrder failed:", e);
   }
+}
+
+// Texts the admin about something that needs a human. At most once a day per key.
+export async function alertAdmin(key: string, message: string) {
+  if (await rateLimit(`alert:${key}`, 1, 86400)) await sendSms(`ATTENTION: ${message}`);
 }

@@ -3,9 +3,11 @@
 import { randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 import { z } from "zod";
+import { clientKey } from "@/lib/client-ip";
 import { notifyNewOrder } from "@/lib/notify";
 import { initializePaystack } from "@/lib/paystack";
 import { normalizeGhPhone } from "@/lib/phone";
+import { rateLimit } from "@/lib/rate-limit";
 import { adminClient } from "@/lib/supabase/admin";
 
 const schema = z.object({
@@ -45,6 +47,11 @@ export async function placeOrder(
   if (!phone) return { ok: false, error: "Enter a valid phone number, for example 0241234567." };
   if (d.method === "paystack" && !d.email) {
     return { ok: false, error: "An email address is needed for online payment." };
+  }
+
+  // at most 8 order attempts per visitor every 10 minutes
+  if (!(await rateLimit(`order:${await clientKey()}`, 8, 600))) {
+    return { ok: false, error: "Too many attempts. Please wait a few minutes and try again." };
   }
 
   // merge duplicate lines
