@@ -70,7 +70,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
           <div className="mt-8">
             <SizePicker
-              productName={product.name}
+              product={{ id: product.id, slug: product.slug, name: product.name, price: product.price_pesewas, image: product.images[0] ?? null }}
               sizeType={product.category?.size_type ?? "none"}
               variants={product.variants}
               whatsapp={settings.whatsapp_number}

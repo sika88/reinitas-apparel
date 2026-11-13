@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import CartLink from "@/components/cart-link";
 import type { Category, SiteSettings } from "@/lib/types";
 
 export default function SiteHeader({
@@ -31,11 +32,12 @@ export default function SiteHeader({
             <Link
               key={c.id}
               href={`/shop?category=${c.slug}`}
-              className="text-muted transition hover:text-foreground"
+              className="hidden text-muted transition hover:text-foreground sm:block"
             >
               {c.name}
             </Link>
           ))}
+          <CartLink />
         </nav>
       </div>
     </header>

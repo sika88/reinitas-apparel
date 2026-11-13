@@ -3,9 +3,10 @@ import { Geist, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
+import { CartProvider } from "@/lib/cart";
 import { getCategories, getSettings } from "@/lib/queries";
 
-export const dynamic = "force-dynamic"; // catalogue changes must show immediately
+export const dynamic = "force-dynamic";
 
 const sans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const display = Playfair_Display({ variable: "--font-playfair", subsets: ["latin"] });
@@ -23,9 +24,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body className="flex min-h-screen flex-col">
-        <SiteHeader settings={settings} categories={categories} />
-        <main className="flex-1">{children}</main>
-        <SiteFooter settings={settings} />
+        <CartProvider>
+          <SiteHeader settings={settings} categories={categories} />
+          <main className="flex-1">{children}</main>
+          <SiteFooter settings={settings} />
+        </CartProvider>
       </body>
     </html>
   );
