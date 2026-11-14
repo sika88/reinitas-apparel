@@ -103,7 +103,7 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
         <h2 className="font-display text-xl">Brand</h2>
         <ImageField
           label="Logo"
-          hint="Shown in the shop header. PNG or WebP with a transparent background works best."
+          hint="Shown in the shop header and footer. Use a wide (horizontal) logo on a transparent background, for example reinitas-logo-horizontal.png."
           value={v.logo_url}
           onChange={(u) => set("logo_url", u)}
           onError={setError}

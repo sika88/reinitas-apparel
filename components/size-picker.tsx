@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { sortSizes, waLink } from "@/lib/format";
 import type { SizeType, Variant } from "@/lib/types";
@@ -19,6 +19,7 @@ export default function SizePicker({
   variants: Variant[];
   whatsapp: string;
 }) {
+  const labelId = useId();
   const { add } = useCart();
   const sorted = sortSizes(variants);
   const needsSize = sizeType !== "none";
@@ -44,7 +45,7 @@ export default function SizePicker({
       maxStock: variant.stock,
     });
     setAdded(true);
-    setTimeout(() => setAdded(false), 2500);
+    setTimeout(() => setAdded(false), 4000);
   }
 
   function enquire() {
@@ -57,19 +58,19 @@ export default function SizePicker({
     ? "Sold out"
     : needsSize && !selected
       ? "Select a size"
-      : added
-        ? "Added to cart ✓"
-        : "Add to cart";
+      : "Add to cart";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {needsSize && (
-        <div>
-          <div className="mb-2 flex items-baseline justify-between text-sm">
-            <span className="font-medium">Size</span>
+        <div role="group" aria-labelledby={labelId}>
+          <div className="mb-3 flex items-baseline justify-between text-sm">
+            <span id={labelId} className="font-medium">
+              Size
+            </span>
             <span className="text-muted">{size ? `Selected: ${size}` : "Select a size"}</span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2.5">
             {sorted.map((v) => {
               const out = v.stock === 0;
               const active = v.size === size;
@@ -79,12 +80,13 @@ export default function SizePicker({
                   type="button"
                   disabled={out}
                   aria-pressed={active}
+                  aria-label={out ? `${v.size}, sold out` : v.size}
                   onClick={() => setSize(v.size)}
-                  className={`min-w-12 rounded-lg border px-3 py-2 text-sm transition ${
+                  className={`min-h-11 min-w-12 rounded-lg border px-3.5 text-sm transition ${
                     active
                       ? "border-accent bg-accent text-white"
                       : "border-border bg-surface hover:border-accent"
-                  } ${out ? "cursor-not-allowed opacity-40 line-through hover:border-border" : ""}`}
+                  } ${out ? "cursor-not-allowed text-muted line-through opacity-50 hover:border-border" : ""}`}
                 >
                   {v.size}
                 </button>
@@ -92,34 +94,30 @@ export default function SizePicker({
             })}
           </div>
           {selected && selected.stock > 0 && selected.stock <= 3 && (
-            <p className="mt-2 text-xs font-medium text-accent">Only {selected.stock} left</p>
+            <p className="mt-3 text-sm font-medium text-accent">Only {selected.stock} left in this size</p>
           )}
         </div>
       )}
 
       <div className="space-y-3">
-        <button
-          type="button"
-          onClick={addToCart}
-          disabled={!canAdd}
-          className="w-full rounded-full bg-accent px-6 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-        >
+        <button type="button" onClick={addToCart} disabled={!canAdd} className="btn-primary w-full">
           {label}
         </button>
 
-        {added && (
-          <Link href="/cart" className="block text-center text-sm text-accent underline">
-            View cart and checkout
-          </Link>
-        )}
+        <p role="status" aria-live="polite" className="min-h-5 text-center text-sm">
+          {added && (
+            <>
+              Added to your cart.{" "}
+              <Link href="/cart" className="font-medium text-accent underline underline-offset-2">
+                View cart
+              </Link>
+            </>
+          )}
+        </p>
 
         {whatsapp && (
-          <button
-            type="button"
-            onClick={enquire}
-            className="w-full rounded-full border border-border bg-surface px-6 py-3 text-sm font-medium transition hover:border-accent"
-          >
-            Ask a question on WhatsApp
+          <button type="button" onClick={enquire} className="btn-outline w-full">
+            Ask about this on WhatsApp
           </button>
         )}
       </div>

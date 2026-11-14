@@ -9,9 +9,17 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
   const [settings, categories] = await Promise.all([getSettings(), getCategories()]);
   return (
     <CartProvider>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent focus:px-5 focus:py-2.5 focus:text-sm focus:text-white"
+      >
+        Skip to content
+      </a>
       <SiteHeader settings={settings} categories={categories} />
-      <main className="flex-1">{children}</main>
-      <SiteFooter settings={settings} />
+      <main id="main" className="flex-1">
+        {children}
+      </main>
+      <SiteFooter settings={settings} categories={categories} />
     </CartProvider>
   );
 }
