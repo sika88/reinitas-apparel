@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { saveSettings } from "@/lib/actions/settings";
+import { useToast } from "@/components/admin/toast";
 import { uploadImage } from "@/lib/upload";
 
 type Initial = {
@@ -9,12 +10,15 @@ type Initial = {
   tagline: string;
   whatsapp_number: string;
   admin_phone: string;
+  momo_number: string;
+  momo_name: string;
+  momo_network: string;
   logo_url: string | null;
   hero_image_url: string | null;
 };
 
-const field =
-  "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20";
+const NETWORKS = ["MTN MoMo", "Telecel Cash", "AirtelTigo Money"];
+const field = "field";
 
 function ImageField({
   label,
@@ -51,7 +55,7 @@ function ImageField({
         <p className="text-xs text-muted">{hint}</p>
       </div>
       <div className="flex items-center gap-4">
-        <div className="flex h-20 w-36 items-center justify-center overflow-hidden rounded-lg border border-border bg-background">
+        <div className="flex h-20 w-44 items-center justify-center overflow-hidden rounded-lg border border-border bg-background">
           {value ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={value} alt="" className="max-h-full max-w-full object-contain" />
@@ -77,6 +81,7 @@ function ImageField({
 
 export default function SettingsForm({ initial }: { initial: Initial }) {
   const [v, setV] = useState(initial);
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -92,7 +97,10 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
     setSaved(false);
     setSaving(true);
     const res = await saveSettings(v);
-    if (res.ok) setSaved(true);
+    if (res.ok) {
+      setSaved(true);
+      toast.success("Settings saved");
+    }
     else setError(res.error);
     setSaving(false);
   }
@@ -100,7 +108,7 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
   return (
     <form onSubmit={onSubmit} className="space-y-8">
       <section className="space-y-4 rounded-2xl border border-border bg-surface p-5">
-        <h2 className="font-display text-xl">Brand</h2>
+        <h2 className="font-display text-2xl font-medium">Brand</h2>
         <ImageField
           label="Logo"
           hint="Shown in the shop header and footer. Use a wide (horizontal) logo on a transparent background, for example reinitas-logo-horizontal.png."
@@ -132,7 +140,55 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
       </section>
 
       <section className="space-y-4 rounded-2xl border border-border bg-surface p-5">
-        <h2 className="font-display text-xl">Contact and alerts</h2>
+        <div>
+          <h2 className="font-display text-2xl font-medium">Payments: MoMo</h2>
+          <p className="mt-1 text-sm text-muted">
+            Customers who choose “Pay with MoMo” see these details after they order, and send the payment to this account. You confirm each
+            payment on the order page.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block space-y-1.5 text-sm">
+            <span className="font-medium">Network</span>
+            <select value={v.momo_network} onChange={(e) => set("momo_network", e.target.value)} className={field}>
+              {NETWORKS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block space-y-1.5 text-sm">
+            <span className="font-medium">MoMo number</span>
+            <input value={v.momo_number} onChange={(e) => set("momo_number", e.target.value)} inputMode="tel" placeholder="0241234567" className={field} />
+          </label>
+        </div>
+        <label className="block space-y-1.5 text-sm">
+          <span className="font-medium">Account name</span>
+          <input
+            value={v.momo_name}
+            onChange={(e) => set("momo_name", e.target.value)}
+            maxLength={80}
+            placeholder="The name registered on the MoMo account"
+            className={field}
+          />
+        </label>
+
+        <div className="rounded-xl bg-cream p-4 text-sm">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted">What customers see</p>
+          {v.momo_number ? (
+            <p className="mt-2">
+              Send the amount to <strong>{v.momo_number}</strong>
+              {v.momo_name && <> ({v.momo_name})</>} on <strong>{v.momo_network}</strong>.
+            </p>
+          ) : (
+            <p className="mt-2 text-muted">Add a number so customers know where to send their payment.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-border bg-surface p-5">
+        <h2 className="font-display text-2xl font-medium">Contact and alerts</h2>
         <label className="block space-y-1.5 text-sm">
           <span className="font-medium">WhatsApp number for customers</span>
           <input value={v.whatsapp_number} onChange={(e) => set("whatsapp_number", e.target.value)} placeholder="0241234567" className={field} />
@@ -150,13 +206,9 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
           {error}
         </p>
       )}
-      {saved && <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Settings saved.</p>}
+      {saved && <p role="status" className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Settings saved.</p>}
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="rounded-full bg-accent px-6 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
-      >
+      <button type="submit" disabled={saving} className="btn-primary">
         {saving ? "Saving…" : "Save settings"}
       </button>
     </form>

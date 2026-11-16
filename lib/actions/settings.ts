@@ -11,6 +11,9 @@ const schema = z.object({
   tagline: z.string().trim().max(160),
   whatsapp_number: z.string().trim(),
   admin_phone: z.string().trim(),
+  momo_number: z.string().trim(),
+  momo_name: z.string().trim().max(80),
+  momo_network: z.enum(["MTN MoMo", "Telecel Cash", "AirtelTigo Money"]),
   logo_url: z.string().nullable(),
   hero_image_url: z.string().nullable(),
 });
@@ -43,6 +46,14 @@ export async function saveSettings(input: unknown): Promise<{ ok: true } | { ok:
     adminPhone = n;
   }
 
+  let momoNumber = "";
+  if (d.momo_number) {
+    const n = normalizeGhPhone(d.momo_number);
+    if (!n) return { ok: false, error: "Enter a valid MoMo number, for example 0241234567." };
+    if (!d.momo_name) return { ok: false, error: "Add the MoMo account name, so customers can check who they are paying." };
+    momoNumber = n;
+  }
+
   const { error } = await supabase
     .from("site_settings")
     .update({
@@ -51,6 +62,9 @@ export async function saveSettings(input: unknown): Promise<{ ok: true } | { ok:
       whatsapp_number: whatsapp,
       logo_url: d.logo_url,
       hero_image_url: d.hero_image_url,
+      momo_number: momoNumber,
+      momo_name: momoNumber ? d.momo_name : "",
+      momo_network: d.momo_network,
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);

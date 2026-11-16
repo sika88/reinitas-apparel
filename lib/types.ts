@@ -21,4 +21,7 @@ export type SiteSettings = {
   logo_url: string | null;
   hero_image_url: string | null;
   whatsapp_number: string;
+  momo_number: string;
+  momo_name: string;
+  momo_network: string;
 };

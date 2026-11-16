@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import PageHeader from "@/components/admin/page-header";
 import ProductForm, { type ProductData } from "@/components/admin/product-form";
 import { requireAdmin } from "@/lib/admin";
 import type { SizeType } from "@/lib/types";
@@ -21,8 +22,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   if (!product) notFound();
 
   return (
-    <div className="max-w-3xl">
-      <h1 className="mb-6 font-display text-3xl">Edit product</h1>
+    <div>
+      <PageHeader title="Edit product" back={{ href: "/admin/products", label: "Products" }} />
       <ProductForm
         categories={(cats ?? []) as { id: string; name: string; size_type: SizeType }[]}
         product={product as unknown as ProductData}

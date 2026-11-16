@@ -119,7 +119,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </div>
 
           <ul className="mt-8 space-y-3 border-t border-border pt-6 text-sm text-muted">
-            <li>Pay online with Mobile Money or card, or pay when your order arrives.</li>
+            <li>Pay online with card or Mobile Money, or pay with MoMo directly to us.</li>
             <li>
               We confirm delivery details with you after you order.{" "}
               <Link href="/delivery-returns" className="text-accent underline underline-offset-2">

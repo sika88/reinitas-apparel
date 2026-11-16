@@ -17,7 +17,7 @@ const schema = z.object({
   address: z.string().trim().min(5).max(300),
   city: z.string().trim().min(2).max(100),
   notes: z.string().trim().max(500),
-  method: z.enum(["paystack", "pay_on_delivery"]),
+  method: z.enum(["paystack", "momo"]),
   items: z
     .array(z.object({ variantId: z.string().uuid(), quantity: z.number().int().min(1).max(10) }))
     .min(1)
@@ -82,8 +82,8 @@ export async function placeOrder(
   const row = (data as { new_order_id: string; new_total_pesewas: number }[] | null)?.[0];
   if (!row) return { ok: false, error: "We couldn't place your order. Please try again." };
 
-  if (d.method === "pay_on_delivery") {
-    await notifyNewOrder(row.new_order_id, "pay_on_delivery");
+  if (d.method === "momo") {
+    await notifyNewOrder(row.new_order_id, "momo_pending");
     return { ok: true, redirectUrl: `/checkout/complete?reference=${reference}` };
   }
 

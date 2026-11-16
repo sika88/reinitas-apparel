@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ClearCart from "@/components/clear-cart";
+import CopyButton from "@/components/copy-button";
 import { formatPrice, waLink } from "@/lib/format";
 import { finalizePaidOrder } from "@/lib/orders";
 import { getSettings } from "@/lib/queries";
@@ -10,9 +11,15 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Order status", robots: { index: false } };
 
 type Line = { product_name: string; size: string; quantity: number; unit_price_pesewas: number };
+type Tone = "ok" | "wait" | "issue";
 
-const copy: Record<string, { title: string; body: string; tone: "ok" | "wait" | "issue" }> = {
-  paid: { title: "Payment received. Thank you!", body: "Your order is confirmed and we will be in touch about delivery.", tone: "ok" },
+const copy: Record<string, { title: string; body: string; tone: Tone }> = {
+  paid: { title: "Payment received. Thank you!", body: "Your payment is confirmed and we will be in touch about delivery.", tone: "ok" },
+  momo_pending: {
+    title: "Order received. One more step",
+    body: "Please send your MoMo payment as shown below. We confirm it and start preparing your order.",
+    tone: "wait",
+  },
   pod: { title: "Order received. Thank you!", body: "You will pay on delivery. We will contact you shortly to confirm.", tone: "ok" },
   unpaid: {
     title: "We haven’t received your payment yet",
@@ -27,6 +34,8 @@ const copy: Record<string, { title: string; body: string; tone: "ok" | "wait" | 
   },
 };
 
+const prettyPhone = (n: string) => n.replace(/^(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3");
+
 export default async function CompletePage({
   searchParams,
 }: {
@@ -38,23 +47,27 @@ export default async function CompletePage({
 
   const { data: order } = await adminClient()
     .from("orders")
-    .select("reference,address,city,payment_method,total_pesewas,order_items(product_name,size,quantity,unit_price_pesewas)")
+    .select("reference,address,city,payment_method,status,total_pesewas,order_items(product_name,size,quantity,unit_price_pesewas)")
     .eq("reference", reference)
     .maybeSingle();
   if (!order) notFound();
 
-  // For online payments, ask Paystack: never trust the URL alone
-  const state = order.payment_method === "paystack" ? await finalizePaidOrder(reference) : "pod";
+  // Online payments: ask Paystack, never trust the URL alone. MoMo: the admin confirms by hand.
+  let state: string;
+  if (order.payment_method === "paystack") state = await finalizePaidOrder(reference);
+  else if (order.payment_method === "momo") state = order.status === "pending" ? "momo_pending" : order.status === "cancelled" ? "cancelled" : "paid";
+  else state = "pod";
+
   const settings = await getSettings();
   const lines = order.order_items as Line[];
   const c = copy[state] ?? copy.unpaid;
-  const success = c.tone === "ok";
-
+  const clearCart = state === "paid" || state === "pod" || state === "momo_pending";
   const iconColor = c.tone === "ok" ? "bg-emerald-100 text-emerald-700" : c.tone === "wait" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
+  const amount = formatPrice(order.total_pesewas);
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 py-14 sm:py-20">
-      {success && <ClearCart />}
+      {clearCart && <ClearCart />}
 
       <div className="rounded-3xl border border-border bg-surface p-7 sm:p-10">
         <div className={`flex h-14 w-14 items-center justify-center rounded-full ${iconColor}`}>
@@ -65,6 +78,64 @@ export default async function CompletePage({
 
         <h1 className="mt-6 font-display text-4xl font-medium leading-tight">{c.title}</h1>
         <p className="mt-3 text-sm text-muted">{c.body}</p>
+
+        {state === "momo_pending" && (
+          <section aria-labelledby="how-to-pay" className="mt-8 rounded-2xl border border-accent/25 bg-accent/5 p-5">
+            <h2 id="how-to-pay" className="font-display text-2xl font-medium">
+              How to pay with MoMo
+            </h2>
+            {settings.momo_number ? (
+              <>
+                <ol className="mt-4 space-y-4 text-sm">
+                  <li>
+                    <span className="font-medium">1. Send {amount}</span> on {settings.momo_network} to:
+                    <dl className="mt-3 space-y-2 rounded-xl bg-surface p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <dt className="text-xs text-muted">MoMo number</dt>
+                          <dd className="text-lg font-medium tracking-wide">{prettyPhone(settings.momo_number)}</dd>
+                        </div>
+                        <CopyButton value={settings.momo_number} label="Copy number" />
+                      </div>
+                      {settings.momo_name && (
+                        <div>
+                          <dt className="text-xs text-muted">Account name</dt>
+                          <dd className="font-medium">{settings.momo_name}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </li>
+                  <li>
+                    <span className="font-medium">2. Use your order reference</span> if the MoMo app asks for one:
+                    <span className="mt-2 flex items-center gap-3">
+                      <strong className="text-base">{order.reference}</strong>
+                      <CopyButton value={order.reference} label="Copy reference" />
+                    </span>
+                  </li>
+                  <li>
+                    <span className="font-medium">3. Tell us you have paid</span> so we can match your payment and start your order.
+                  </li>
+                </ol>
+                {settings.whatsapp_number && (
+                  <a
+                    href={waLink(
+                      settings.whatsapp_number,
+                      `Hello! I have sent ${amount} by MoMo for order ${order.reference}. Sender name: `,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary mt-5 w-full"
+                  >
+                    I’ve paid: tell us on WhatsApp<span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                )}
+              </>
+            ) : (
+              <p className="mt-3 text-sm">We will message you our MoMo details shortly. Your order is reserved for you.</p>
+            )}
+            <p className="mt-4 text-xs text-muted">Your order is held for 48 hours while we wait for your payment.</p>
+          </section>
+        )}
 
         <div className="mt-8 rounded-2xl bg-cream p-5 text-sm">
           <p>
@@ -85,7 +156,7 @@ export default async function CompletePage({
           </ul>
           <p className="mt-4 flex justify-between border-t border-border pt-4 font-medium">
             <span>Total</span>
-            <span>{formatPrice(order.total_pesewas)}</span>
+            <span>{amount}</span>
           </p>
           <p className="mt-3 text-xs text-muted">
             Delivering to {order.address}, {order.city}
@@ -93,7 +164,7 @@ export default async function CompletePage({
         </div>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          {settings.whatsapp_number && (
+          {settings.whatsapp_number && state !== "momo_pending" && (
             <a
               href={waLink(settings.whatsapp_number, `Hello! About my order ${order.reference}.`)}
               target="_blank"
@@ -103,7 +174,7 @@ export default async function CompletePage({
               Message us on WhatsApp<span className="sr-only"> (opens in a new tab)</span>
             </a>
           )}
-          <Link href="/shop" className="btn-primary">
+          <Link href="/shop" className={state === "momo_pending" ? "btn-outline" : "btn-primary"}>
             Continue shopping
           </Link>
         </div>

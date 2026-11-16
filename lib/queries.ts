@@ -13,12 +13,15 @@ const DEFAULT_SETTINGS: SiteSettings = {
   logo_url: null,
   hero_image_url: null,
   whatsapp_number: "",
+  momo_number: "",
+  momo_name: "",
+  momo_network: "MTN MoMo",
 };
 
 export async function getSettings(): Promise<SiteSettings> {
   const { data } = await publicClient()
     .from("site_settings")
-    .select("business_name,tagline,logo_url,hero_image_url,whatsapp_number")
+    .select("business_name,tagline,logo_url,hero_image_url,whatsapp_number,momo_number,momo_name,momo_network")
     .eq("id", 1)
     .maybeSingle();
   return (data as SiteSettings | null) ?? DEFAULT_SETTINGS;

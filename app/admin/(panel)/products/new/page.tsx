@@ -1,3 +1,4 @@
+import PageHeader from "@/components/admin/page-header";
 import ProductForm from "@/components/admin/product-form";
 import { requireAdmin } from "@/lib/admin";
 import type { SizeType } from "@/lib/types";
@@ -10,8 +11,8 @@ export default async function NewProductPage() {
   const categories = (data ?? []) as { id: string; name: string; size_type: SizeType }[];
 
   return (
-    <div className="max-w-3xl">
-      <h1 className="mb-6 font-display text-3xl">New product</h1>
+    <div>
+      <PageHeader title="New product" description="Add the photos, sizes and stock, then save." back={{ href: "/admin/products", label: "Products" }} />
       <ProductForm categories={categories} />
     </div>
   );

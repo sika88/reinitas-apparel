@@ -106,3 +106,43 @@ body {
     @apply text-accent underline underline-offset-2;
   }
 }
+
+/* ---------- Motion ---------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes kenburns {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+@keyframes ring-float {
+  from { transform: scale(1) rotate(0deg); }
+  to { transform: scale(1.07) rotate(10deg); }
+}
+@keyframes glow-drift {
+  from { transform: translate3d(0, 0, 0); opacity: 0.85; }
+  to { transform: translate3d(-3%, 4%, 0); opacity: 1; }
+}
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+
+.fade-up {
+  animation: fade-up 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+.kenburns { animation: kenburns 26s ease-out both; }
+.ring-float { animation: ring-float 18s ease-in-out infinite alternate; }
+.hero-glow { animation: glow-drift 14s ease-in-out infinite alternate; }
+
+.marquee { overflow: hidden; }
+.marquee-track { display: flex; width: max-content; animation: marquee 38s linear infinite; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+
+.reveal-hidden { opacity: 0; transform: translateY(28px); }
+.reveal-shown {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}

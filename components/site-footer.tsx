@@ -86,7 +86,7 @@ export default function SiteFooter({
                 </a>
               </li>
             )}
-            <li className="text-cream/80">Pay online or on delivery</li>
+            <li className="text-cream/80">Pay online or with MoMo</li>
           </ul>
         </div>
       </div>

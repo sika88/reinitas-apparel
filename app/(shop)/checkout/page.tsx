@@ -8,7 +8,7 @@ import { placeOrder } from "./actions";
 
 export default function CheckoutPage() {
   const { items, hydrated, subtotal } = useCart();
-  const [method, setMethod] = useState<"paystack" | "pay_on_delivery">("paystack");
+  const [method, setMethod] = useState<"paystack" | "momo">("paystack");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,7 +83,7 @@ export default function CheckoutPage() {
               </label>
             </div>
             <label className="block">
-              {label("Email", method === "pay_on_delivery")}
+              {label("Email", method === "momo")}
               <input name="email" type="email" required={method === "paystack"} autoComplete="email" className="field" />
             </label>
           </section>
@@ -112,8 +112,8 @@ export default function CheckoutPage() {
             </legend>
             {(
               [
-                ["paystack", "Pay online", "Mobile Money or card, securely through Paystack"],
-                ["pay_on_delivery", "Pay on delivery", "Pay when your order arrives"],
+                ["paystack", "Pay online", "Card or Mobile Money, confirmed instantly through Paystack"],
+                ["momo", "Pay with MoMo", "Send the amount to our MoMo number. We confirm your payment and process your order"],
               ] as const
             ).map(([value, title, hint]) => (
               <label
