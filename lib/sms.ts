@@ -10,26 +10,32 @@ async function getAdminPhone(): Promise<string | null> {
   return process.env.ADMIN_PHONE ?? null;
 }
 
-// Sends an SMS to the admin. Never throws: a failed text must not break an order.
+// Sends an SMS to the admin through mNotify. Never throws: a failed text must not break an order.
 export async function sendSms(message: string) {
-  const key = process.env.ARKESEL_API_KEY;
-  const sender = process.env.ARKESEL_SENDER_ID;
+  const key = process.env.MNOTIFY_API_KEY;
+  const sender = process.env.MNOTIFY_SENDER_ID;
   const admin = await getAdminPhone();
   if (!key || !sender || !admin) {
-    console.warn("SMS skipped: set ARKESEL_API_KEY, ARKESEL_SENDER_ID and an admin phone number");
+    console.warn("SMS skipped: set MNOTIFY_API_KEY, MNOTIFY_SENDER_ID and an admin phone number");
     return;
   }
   try {
-    const res = await fetch("https://sms.arkesel.com/api/v2/sms/send", {
+    const res = await fetch(`https://api.mnotify.com/api/sms/quick?key=${encodeURIComponent(key)}`, {
       method: "POST",
-      headers: { "api-key": key, "Content-Type": "application/json" },
-      body: JSON.stringify({ sender, message, recipients: [toInternational(admin)] }),
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        recipient: [toInternational(admin)],
+        sender,
+        message: message.slice(0, 450),
+        is_schedule: false,
+        schedule_date: "",
+      }),
       cache: "no-store",
     });
     const body = await res.text();
-    if (!res.ok) console.error("Arkesel SMS failed:", res.status, body);
-    else console.log("Arkesel SMS response:", body);
+    if (!res.ok) console.error("mNotify SMS failed:", res.status, body);
+    else console.log("mNotify SMS response:", body);
   } catch (e) {
-    console.error("Arkesel SMS error:", e);
+    console.error("mNotify SMS error:", e);
   }
 }

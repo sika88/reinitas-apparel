@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import DiscountCard from "@/components/admin/discount-card";
 import PageHeader from "@/components/admin/page-header";
 import ProductForm, { type ProductData } from "@/components/admin/product-form";
 import { requireAdmin } from "@/lib/admin";
@@ -14,7 +15,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const [{ data: product }, { data: cats }] = await Promise.all([
     supabase
       .from("products")
-      .select("id,name,category_id,description,price_pesewas,images,active,featured,variants:product_variants(size,stock)")
+      .select("id,name,category_id,description,price_pesewas,images,active,featured,discount_percent,variants:product_variants(size,stock)")
       .eq("id", id)
       .maybeSingle(),
     supabase.from("categories").select("id,name,size_type").order("sort_order"),
@@ -24,6 +25,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   return (
     <div>
       <PageHeader title="Edit product" back={{ href: "/admin/products", label: "Products" }} />
+      <DiscountCard productId={product.id} price={product.price_pesewas} discount={product.discount_percent ?? null} />
       <ProductForm
         categories={(cats ?? []) as { id: string; name: string; size_type: SizeType }[]}
         product={product as unknown as ProductData}

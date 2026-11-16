@@ -18,13 +18,19 @@ const schema = z.object({
   city: z.string().trim().min(2).max(100),
   notes: z.string().trim().max(500),
   method: z.enum(["paystack", "momo"]),
+  expectedTotal: z.number().int().min(0).optional(),
   items: z
     .array(z.object({ variantId: z.string().uuid(), quantity: z.number().int().min(1).max(10) }))
     .min(1)
     .max(20),
 });
 
+type Result = { ok: true; redirectUrl: string } | { ok: false; error: string; refreshCart?: boolean };
+
 function friendlyError(message: string) {
+  if (message.includes("PRICE_CHANGED")) {
+    return "The price of something in your cart has changed. We’ve updated your cart. Please check the new total and try again.";
+  }
   if (message.includes("OUT_OF_STOCK:")) {
     const what = message.split("OUT_OF_STOCK:")[1]?.trim();
     return `Sorry, "${what}" just sold out or has fewer in stock than you asked for. Please update your cart.`;
@@ -36,9 +42,7 @@ function friendlyError(message: string) {
 }
 
 // A Server Action is a public endpoint: everything is validated here, prices come from the database.
-export async function placeOrder(
-  input: unknown,
-): Promise<{ ok: true; redirectUrl: string } | { ok: false; error: string }> {
+export async function placeOrder(input: unknown): Promise<Result> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Please check your details and try again." };
   const d = parsed.data;
@@ -73,11 +77,16 @@ export async function placeOrder(
     p_notes: d.notes || null,
     p_method: d.method,
     p_items: [...merged].map(([variant_id, quantity]) => ({ variant_id, quantity })),
+    p_expected_total: d.expectedTotal ?? null,
   });
 
   if (error) {
     console.error("place_order failed:", error.message);
-    return { ok: false, error: friendlyError(error.message) };
+    return {
+      ok: false,
+      error: friendlyError(error.message),
+      refreshCart: /PRICE_CHANGED|OUT_OF_STOCK|ITEM_UNAVAILABLE/.test(error.message),
+    };
   }
   const row = (data as { new_order_id: string; new_total_pesewas: number }[] | null)?.[0];
   if (!row) return { ok: false, error: "We couldn't place your order. Please try again." };

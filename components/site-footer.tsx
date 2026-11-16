@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { DEVELOPER } from "@/lib/developer";
 import { waLink } from "@/lib/format";
 import type { Category, SiteSettings } from "@/lib/types";
 
@@ -92,9 +93,26 @@ export default function SiteFooter({
       </div>
 
       <div className="border-t border-white/10">
-        <p className="container-page py-5 text-xs text-cream/70">
-          © {new Date().getFullYear()} {settings.business_name}. All rights reserved.
-        </p>
+        <div className="container-page flex flex-col gap-2 py-5 text-xs text-cream/70 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            © {new Date().getFullYear()} {settings.business_name}. All rights reserved.
+          </p>
+          <p>
+            Website by <span className="font-medium text-cream/90">{DEVELOPER.name}</span> ({DEVELOPER.company}) ·{" "}
+            <a href={`tel:+${DEVELOPER.phoneIntl}`} className="underline underline-offset-2 transition hover:text-white">
+              Call {DEVELOPER.phoneDisplay}
+            </a>{" "}
+            ·{" "}
+            <a
+              href={waLink(DEVELOPER.phoneIntl, "Hello! I saw your work on the Reinita's Apparel website.")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 transition hover:text-white"
+            >
+              WhatsApp<span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );

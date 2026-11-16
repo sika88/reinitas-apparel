@@ -23,6 +23,7 @@ const NAV = [
     badge: true,
     icon: <path d="M6 6h15l-1.5 9h-12L6 6Zm0 0L5 3H2M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />,
   },
+  { href: "/admin/sales", label: "Sales", icon: <path d="M3 12.5V4h8.5l9 9a1.5 1.5 0 0 1 0 2.1l-6.4 6.4a1.5 1.5 0 0 1-2.1 0L3 12.5ZM7.5 8h.01" /> },
   { href: "/admin/pages", label: "Pages", icon: <path d="M7 3h7l5 5v13H7V3Zm7 0v5h5M10 13h6M10 17h6" /> },
   {
     href: "/admin/settings",

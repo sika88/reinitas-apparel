@@ -98,3 +98,19 @@ export async function deleteProduct(productId: string) {
   await supabase.from("products").delete().eq("id", productId);
   revalidatePath("/admin/products");
 }
+
+export async function setProductDiscount(
+  productId: string,
+  percent: number | null,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { supabase } = await requireAdmin();
+  if (!z.string().uuid().safeParse(productId).success) return { ok: false, error: "Invalid product." };
+  const p = z.number().int().min(1).max(90).nullable().safeParse(percent);
+  if (!p.success) return { ok: false, error: "Enter a discount between 1% and 90%, or leave it empty." };
+
+  const { error } = await supabase.from("products").update({ discount_percent: p.data }).eq("id", productId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/admin/products");
+  return { ok: true };
+}

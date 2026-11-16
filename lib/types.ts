@@ -1,3 +1,5 @@
+import type { Pricing } from "./pricing";
+
 export type SizeType = "clothing" | "shoe" | "none";
 
 export type Category = { id: string; name: string; slug: string; size_type: SizeType };
@@ -11,8 +13,11 @@ export type Product = {
   price_pesewas: number;
   images: string[];
   featured: boolean;
+  category_id: string | null;
+  discount_percent: number | null;
   category: { name: string; slug: string; size_type: SizeType } | null;
   variants: Variant[];
+  pricing: Pricing;
 };
 
 export type SiteSettings = {

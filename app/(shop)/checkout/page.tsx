@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { placeOrder } from "./actions";
 
 export default function CheckoutPage() {
-  const { items, hydrated, subtotal } = useCart();
+  const { items, hydrated, subtotal, refresh } = useCart();
+  useEffect(() => {
+    if (hydrated) refresh();
+  }, [hydrated, refresh]);
   const [method, setMethod] = useState<"paystack" | "momo">("paystack");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +31,7 @@ export default function CheckoutPage() {
         city: get("city"),
         notes: get("notes"),
         method,
+        expectedTotal: subtotal,
         items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
       });
       if (result.ok) {
@@ -35,6 +39,7 @@ export default function CheckoutPage() {
         return;
       }
       setError(result.error);
+      if (result.refreshCart) await refresh();
     } catch {
       setError("Something went wrong. Please check your connection and try again.");
     }
@@ -156,7 +161,7 @@ export default function CheckoutPage() {
           </button>
         </form>
 
-        <aside className="h-fit rounded-2xl border border-border bg-surface p-6 lg:sticky lg:top-28">
+        <aside className="h-fit rounded-2xl border border-border bg-surface p-6 lg:sticky lg:top-32">
           <h2 className="font-display text-2xl font-medium">Order summary</h2>
           <ul className="mt-5 space-y-3.5 text-sm">
             {items.map((i) => (

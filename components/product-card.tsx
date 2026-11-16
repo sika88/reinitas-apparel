@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { formatPrice, sortSizes } from "@/lib/format";
+import PriceTag from "@/components/price-tag";
+import { sortSizes } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
 export default function ProductCard({ product: p }: { product: Product }) {
@@ -36,22 +37,21 @@ export default function ProductCard({ product: p }: { product: Product }) {
             className="object-cover opacity-0 transition duration-500 group-hover:opacity-100"
           />
         )}
-        {totalStock === 0 && (
-          <span className="absolute left-3 top-3 rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background">
-            Sold out
-          </span>
-        )}
-        {low && (
-          <span className="absolute left-3 top-3 rounded-full bg-gold px-3 py-1 text-xs font-medium text-accent-dark">
-            Few left
-          </span>
-        )}
+        <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+          {p.pricing.onSale && totalStock > 0 && (
+            <span className="rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">−{p.pricing.percent}%</span>
+          )}
+          {totalStock === 0 && (
+            <span className="rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background">Sold out</span>
+          )}
+          {low && <span className="rounded-full bg-gold px-3 py-1 text-xs font-medium text-accent-dark">Few left</span>}
+        </div>
       </div>
 
       <div className="mt-3.5 space-y-1">
         {p.category && <p className="eyebrow">{p.category.name}</p>}
         <h3 className="font-display text-xl font-medium leading-snug transition group-hover:text-accent">{p.name}</h3>
-        <p className="text-sm">{formatPrice(p.price_pesewas)}</p>
+        <PriceTag pricing={p.pricing} />
         {showSizes && <p className="text-xs text-muted">Sizes {availableSizes.join(" · ")}</p>}
       </div>
     </Link>

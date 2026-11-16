@@ -1,11 +1,14 @@
 import { cache } from "react";
+import { priceFor, type ActiveSale } from "./pricing";
 import { publicClient } from "./supabase/public";
 import type { Category, Product, SiteSettings } from "./types";
 
 const PRODUCT_SELECT =
-  "id,name,slug,description,price_pesewas,images,featured,created_at," +
+  "id,name,slug,description,price_pesewas,images,featured,created_at,category_id,discount_percent," +
   "category:categories(name,slug,size_type)," +
   "variants:product_variants(id,size,stock)";
+
+type RawProduct = Omit<Product, "pricing">;
 
 const DEFAULT_SETTINGS: SiteSettings = {
   business_name: "Reinita's Apparel",
@@ -36,6 +39,19 @@ export async function getCategories(): Promise<Category[]> {
   return (data ?? []) as Category[];
 }
 
+// Row Level Security only returns sales that are live right now
+export const getActiveSales = cache(async (): Promise<ActiveSale[]> => {
+  const { data } = await publicClient()
+    .from("sales")
+    .select("id,name,percent_off,scope,category_ids,ends_at,banner_text")
+    .order("percent_off", { ascending: false });
+  return (data ?? []) as ActiveSale[];
+});
+
+function withPricing(list: RawProduct[], sales: ActiveSale[]): Product[] {
+  return list.map((p) => ({ ...p, pricing: priceFor(p, sales) }));
+}
+
 export async function getProducts(
   opts: { categorySlug?: string; limit?: number } = {},
 ): Promise<Product[]> {
@@ -57,19 +73,18 @@ export async function getProducts(
   }
   if (opts.limit) query = query.limit(opts.limit);
 
-  const { data, error } = await query;
+  const [{ data, error }, sales] = await Promise.all([query, getActiveSales()]);
   if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as Product[];
+  return withPricing((data ?? []) as unknown as RawProduct[], sales);
 }
 
 // cache() lets generateMetadata and the page share one query per request
 export const getProductBySlug = cache(async (slug: string): Promise<Product | null> => {
-  const { data, error } = await publicClient()
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("slug", slug)
-    .eq("active", true)
-    .maybeSingle();
+  const [{ data, error }, sales] = await Promise.all([
+    publicClient().from("products").select(PRODUCT_SELECT).eq("slug", slug).eq("active", true).maybeSingle(),
+    getActiveSales(),
+  ]);
   if (error) throw new Error(error.message);
-  return (data as unknown as Product | null) ?? null;
+  if (!data) return null;
+  return withPricing([data as unknown as RawProduct], sales)[0];
 });

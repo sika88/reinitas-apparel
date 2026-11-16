@@ -5,6 +5,7 @@ import PageHeader from "@/components/admin/page-header";
 import { requireAdmin } from "@/lib/admin";
 import { deleteProduct, setProductActive } from "@/lib/actions/products";
 import { formatPrice } from "@/lib/format";
+import { discountedPrice } from "@/lib/pricing";
 
 export const metadata = { title: "Products" };
 
@@ -13,6 +14,7 @@ type Row = {
   id: string;
   name: string;
   price_pesewas: number;
+  discount_percent: number | null;
   images: string[];
   active: boolean;
   featured: boolean;
@@ -29,6 +31,17 @@ function Thumb({ src, name }: { src?: string; name: string }) {
         <div className="flex h-full items-center justify-center font-display text-2xl text-accent/30">{name.charAt(0)}</div>
       )}
     </div>
+  );
+}
+
+function Price({ p }: { p: Row }) {
+  if (!p.discount_percent) return <>{formatPrice(p.price_pesewas)}</>;
+  return (
+    <span>
+      <span className="font-medium text-accent">{formatPrice(discountedPrice(p.price_pesewas, p.discount_percent))}</span>{" "}
+      <s className="text-xs text-muted">{formatPrice(p.price_pesewas)}</s>{" "}
+      <span className="rounded-full bg-gold/30 px-1.5 py-0.5 text-[11px] font-medium text-accent-dark">−{p.discount_percent}%</span>
+    </span>
   );
 }
 
@@ -87,7 +100,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
 
   let query = supabase
     .from("products")
-    .select("id,name,price_pesewas,images,active,featured,category:categories(name),variants:product_variants(size,stock)")
+    .select("id,name,price_pesewas,discount_percent,images,active,featured,category:categories(name),variants:product_variants(size,stock)")
     .order("created_at", { ascending: false });
   if (q) query = query.ilike("name", `%${q}%`);
   if (status === "visible") query = query.eq("active", true);
@@ -191,12 +204,14 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                           <Link href={`/admin/products/${p.id}`} className="font-medium hover:text-accent">
                             {p.name}
                           </Link>
-                          {p.featured && <span className="block text-xs text-gold-dark text-accent">★ Featured</span>}
+                          {p.featured && <span className="block text-xs text-accent">★ Featured</span>}
                         </span>
                       </div>
                     </td>
                     <td className="px-5 py-3 text-muted">{p.category?.name}</td>
-                    <td className="px-5 py-3">{formatPrice(p.price_pesewas)}</td>
+                    <td className="px-5 py-3">
+                      <Price p={p} />
+                    </td>
                     <td className="px-5 py-3">
                       <Stock variants={p.variants} />
                     </td>
@@ -223,8 +238,9 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                     <Link href={`/admin/products/${p.id}`} className="block truncate font-medium">
                       {p.name}
                     </Link>
-                    <p className="text-xs text-muted">
-                      {p.category?.name} · {formatPrice(p.price_pesewas)}
+                    <p className="text-xs text-muted">{p.category?.name}</p>
+                    <p className="mt-1 text-sm">
+                      <Price p={p} />
                     </p>
                     <p className="mt-1 text-xs">
                       <Stock variants={p.variants} />

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import OnSaleSection from "@/components/on-sale-section";
 import ProductCard from "@/components/product-card";
 import Reveal from "@/components/reveal";
 import { waLink } from "@/lib/format";
@@ -187,6 +188,8 @@ export default async function Home() {
           })}
         </ul>
       </section>
+
+      <OnSaleSection />
 
       {featured.length > 0 && (
         <section className="container-page pt-20">
