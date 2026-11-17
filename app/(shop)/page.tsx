@@ -1,3 +1,4 @@
+import Hero from "@/components/hero";
 import Image from "next/image";
 import Link from "next/link";
 import OnSaleSection from "@/components/on-sale-section";
@@ -7,6 +8,7 @@ import { waLink } from "@/lib/format";
 import { getCategories, getProducts, getSettings } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
+export const metadata = { alternates: { canonical: "/" } };
 
 const delay = (ms: number) => ({ "--d": `${ms}ms` }) as React.CSSProperties;
 
@@ -81,53 +83,7 @@ export default async function Home() {
 
   return (
     <>
-      <section className="relative isolate overflow-hidden bg-accent text-cream">
-        {hasHero ? (
-          <>
-            <Image src={settings.hero_image_url!} alt="" fill priority sizes="100vw" className="kenburns -z-10 object-cover" />
-            <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-r from-accent/95 via-accent/65 to-accent/20" />
-          </>
-        ) : (
-          <>
-            <div aria-hidden="true" className="hero-glow absolute inset-0 -z-10" />
-            <div
-              aria-hidden="true"
-              className="ring-float absolute -right-32 top-1/2 -z-10 hidden h-[30rem] w-[30rem] -translate-y-1/2 rounded-full border border-gold/30 md:block"
-            />
-            <div
-              aria-hidden="true"
-              className="ring-float absolute -right-14 top-1/2 -z-10 hidden h-[22rem] w-[22rem] -translate-y-1/2 rounded-full border border-gold/20 md:block"
-            />
-          </>
-        )}
-
-        <div className="container-page py-20 sm:py-28 lg:py-40">
-          <p className="fade-up text-xs uppercase tracking-[0.28em] text-gold" style={delay(0)}>
-            New season
-          </p>
-          <h1 className="fade-up mt-4 max-w-2xl font-display text-5xl font-medium leading-[1.05] sm:text-7xl" style={delay(120)}>
-            {settings.tagline || "Dresses, shoes and bags made to turn heads."}
-          </h1>
-          <p className="fade-up mt-6 max-w-lg text-base text-cream/85" style={delay(260)}>
-            Browse by size, pay online or with MoMo, and chat with us on WhatsApp whenever you need a hand.
-          </p>
-          <div className="fade-up mt-9 flex flex-wrap gap-3" style={delay(400)}>
-            <Link href="/shop" className="btn-light">
-              Shop the collection
-            </Link>
-            {settings.whatsapp_number && (
-              <a
-                href={waLink(settings.whatsapp_number, "Hello! I'd like to ask about your products.")}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-ghost-light"
-              >
-                Chat on WhatsApp<span className="sr-only"> (opens in a new tab)</span>
-              </a>
-            )}
-          </div>
-        </div>
-      </section>
+      <Hero settings={settings} categories={categories} products={products} />
 
       <div aria-hidden="true" className="marquee border-y border-accent-dark bg-accent-dark py-3.5 text-gold">
         <div className="marquee-track">

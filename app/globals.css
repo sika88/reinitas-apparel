@@ -146,3 +146,56 @@ body {
   transform: none;
   transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+
+/* ---------- Hero art ---------- */
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes swing { from { transform: rotate(-3.5deg); } to { transform: rotate(3.5deg); } }
+@keyframes spin-cw { to { transform: rotate(360deg); } }
+@keyframes spin-ccw { to { transform: rotate(-360deg); } }
+@keyframes float-a { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-14px) rotate(-1deg); } }
+@keyframes float-b { 0%, 100% { transform: translateY(0) rotate(4deg); } 50% { transform: translateY(13px) rotate(2deg); } }
+@keyframes float-c { 0%, 100% { transform: translateY(0) rotate(2deg); } 50% { transform: translateY(-11px) rotate(4deg); } }
+@keyframes twinkle { 0%, 100% { opacity: 0.15; transform: scale(0.7); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(26px) scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes glow-pulse { 0%, 100% { opacity: 0.55; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.05); } }
+@keyframes line-grow { to { transform: scaleX(1); } }
+@keyframes shine { 0%, 62%, 100% { transform: translateX(-130%); } 82% { transform: translateX(130%); } }
+
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 2.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  animation-delay: var(--d, 0ms);
+}
+.swing { transform-origin: 100px 78px; animation: swing 5.5s ease-in-out 3s infinite alternate; }
+.spin-cw { animation: spin-cw 60s linear infinite; }
+.spin-ccw { animation: spin-ccw 90s linear infinite; }
+.float-a { animation: float-a 7s ease-in-out infinite; }
+.float-b { animation: float-b 8.5s ease-in-out infinite; }
+.float-c { animation: float-c 6.5s ease-in-out infinite; }
+.twinkle { animation: twinkle 3.6s ease-in-out infinite; animation-delay: var(--d, 0ms); }
+.pop-in { opacity: 0; animation: pop-in 1s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; animation-delay: var(--d, 0ms); }
+.glow-pulse { animation: glow-pulse 6s ease-in-out infinite; }
+.line-grow {
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: line-grow 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  animation-delay: var(--d, 0ms);
+}
+
+/* layers drift a little with the mouse (set from hero-stage.tsx) */
+.parallax {
+  transform: translate3d(calc(var(--mx, 0) * var(--px, 10) * 1px), calc(var(--my, 0) * var(--px, 10) * 1px), 0);
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.btn-shine { position: relative; overflow: hidden; }
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(217, 178, 106, 0.5) 50%, transparent 70%);
+  transform: translateX(-130%);
+  animation: shine 5.5s ease-in-out 3s infinite;
+}

@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Jost } from "next/font/google";
 import "./globals.css";
+import SeoSchema from "@/components/seo-schema";
 import { getSettings } from "@/lib/queries";
+import { SITE_URL } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -12,32 +14,34 @@ const display = Cormorant_Garamond({
   weight: ["400", "500", "600", "700"],
 });
 
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
-
 export const viewport: Viewport = { themeColor: "#5B1A2B" };
 
+// The share image (opengraph-image.png) and icons (icon.png, apple-icon.png) come from the files in /app
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
-  const description = s.tagline || `Shop dresses, shoes and bags at ${s.business_name}.`;
+  const name = s.business_name;
+  const title = `${name} | Dresses, Shoes, Bags and More`;
+  const description = `Shop dresses, shoes, sneakers, bags and more at ${name}, online in Ghana. Pay online or with MoMo.`;
+
   return {
-    metadataBase: new URL(siteUrl),
-    title: { default: s.business_name, template: `%s | ${s.business_name}` },
+    metadataBase: new URL(SITE_URL),
+    applicationName: name,
+    title: { default: title, template: `%s | ${name}` },
     description,
-    openGraph: {
-      type: "website",
-      siteName: s.business_name,
-      locale: "en_GH",
-      title: s.business_name,
-      description,
-      ...(s.hero_image_url ? { images: [s.hero_image_url] } : {}),
-    },
+    openGraph: { type: "website", siteName: name, locale: "en_GH", title, description },
+    twitter: { card: "summary_large_image", title, description },
+    verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined },
   };
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const settings = await getSettings();
   return (
     <html lang="en" className={`${sans.variable} ${display.variable}`}>
-      <body className="flex min-h-screen flex-col">{children}</body>
+      <body className="flex min-h-screen flex-col">
+        <SeoSchema settings={settings} />
+        {children}
+      </body>
     </html>
   );
 }
