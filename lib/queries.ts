@@ -49,7 +49,7 @@ export const getActiveSales = cache(async (): Promise<ActiveSale[]> => {
   return (data ?? []) as ActiveSale[];
 });
 
-function toVariants(v: unknown): Variant[] {
+export function toVariants(v: unknown): Variant[] {
   if (Array.isArray(v)) return v as Variant[];
   if (typeof v === "string") {
     try {

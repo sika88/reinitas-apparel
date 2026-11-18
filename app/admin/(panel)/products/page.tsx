@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { deleteProduct, setProductActive } from "@/lib/actions/products";
 import { formatPrice, sortSizes } from "@/lib/format";
 import { discountedPrice } from "@/lib/pricing";
-
+import { toVariants } from "@/lib/queries";
 export const metadata = { title: "Products" };
 
 type Search = { q?: string; status?: string; category?: string; size?: string };
@@ -106,7 +106,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   if (activeCat) query = query.eq("category_id", activeCat.id);
 
   const { data } = await query;
-  const all = (data ?? []) as unknown as Row[];
+  const all = ((data ?? []) as unknown as Row[]).map((p) => ({
+  ...p,
+  variants: toVariants(p.variants) as Row["variants"],
+  }));
 
   const sizes = sortSizes([...new Set(all.map(sizeOf).filter((s): s is string => Boolean(s)))].map((size) => ({ size }))).map((s) => s.size);
   const activeSize = sp.size && sizes.includes(sp.size) ? sp.size : undefined;
