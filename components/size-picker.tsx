@@ -13,21 +13,25 @@ export default function SizePicker({
   sizeType,
   variants,
   whatsapp,
+  moreHref,
 }: {
   product: ProductInfo;
   sizeType: SizeType;
   variants: Variant[];
   whatsapp: string;
+  moreHref?: string;
 }) {
   const labelId = useId();
   const { add } = useCart();
   const sorted = sortSizes(variants);
-  const needsSize = sizeType !== "none";
+  const sized = sizeType !== "none";
+  const single = sorted.length === 1;
   const [size, setSize] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
-  const selected = sorted.find((v) => v.size === size);
-  const variant = needsSize ? selected : sorted[0];
+  // one listing = one size, so there is nothing to choose. Older multi-size listings still get a picker.
+  const selected = single ? sorted[0] : sorted.find((v) => v.size === size);
+  const variant = sized ? selected : sorted[0];
   const soldOut = sorted.every((v) => v.stock === 0);
   const canAdd = Boolean(variant && variant.stock > 0);
 
@@ -49,20 +53,35 @@ export default function SizePicker({
   }
 
   function enquire() {
-    const sizePart = needsSize && size ? ` (size ${size})` : "";
+    const sizePart = sized && variant ? ` (size ${variant.size})` : "";
     const text = `Hello! I'd like to ask about "${product.name}"${sizePart}.\n${window.location.href}`;
     window.open(waLink(whatsapp, text), "_blank", "noopener");
   }
 
-  const label = soldOut
-    ? "Sold out"
-    : needsSize && !selected
-      ? "Select a size"
-      : "Add to cart";
+  const label = soldOut ? "Sold out" : sized && !selected ? "Select a size" : "Add to cart";
 
   return (
     <div className="space-y-6">
-      {needsSize && (
+      {sized && single && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4">
+          <div>
+            <p className="eyebrow">Size</p>
+            <p className="font-display text-4xl font-medium leading-none">{sorted[0].size}</p>
+          </div>
+          <div className="text-right text-sm">
+            <p className={sorted[0].stock === 0 ? "font-medium text-red-600" : sorted[0].stock <= 3 ? "font-medium text-accent" : "text-muted"}>
+              {sorted[0].stock === 0 ? "Sold out in this size" : sorted[0].stock <= 3 ? `Only ${sorted[0].stock} left` : "In stock"}
+            </p>
+            {moreHref && (
+              <Link href={moreHref} className="mt-1 inline-block text-accent underline underline-offset-4">
+                See other sizes
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {sized && !single && (
         <div role="group" aria-labelledby={labelId}>
           <div className="mb-3 flex items-baseline justify-between text-sm">
             <span id={labelId} className="font-medium">
@@ -83,9 +102,7 @@ export default function SizePicker({
                   aria-label={out ? `${v.size}, sold out` : v.size}
                   onClick={() => setSize(v.size)}
                   className={`min-h-11 min-w-12 rounded-lg border px-3.5 text-sm transition ${
-                    active
-                      ? "border-accent bg-accent text-white"
-                      : "border-border bg-surface hover:border-accent"
+                    active ? "border-accent bg-accent text-white" : "border-border bg-surface hover:border-accent"
                   } ${out ? "cursor-not-allowed text-muted line-through opacity-50 hover:border-border" : ""}`}
                 >
                   {v.size}

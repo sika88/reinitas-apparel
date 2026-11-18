@@ -32,8 +32,8 @@ const perks = [
     ),
   },
   {
-    title: "See every size",
-    text: "Stock is shown size by size, so you know what you can get before you order.",
+    title: "Shop by size",
+    text: "Filter by your size and see only what fits, before you order.",
     icon: (
       <Icon>
         <path d="M4 8h16v8H4z" />

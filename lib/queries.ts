@@ -1,7 +1,8 @@
 import { cache } from "react";
 import { priceFor, type ActiveSale } from "./pricing";
 import { publicClient } from "./supabase/public";
-import type { Category, Product, SiteSettings } from "./types";
+import { sortSizes } from "./format";
+import type { Category, Product, SiteSettings, Variant } from "./types";
 
 const PRODUCT_SELECT =
   "id,name,slug,description,price_pesewas,images,featured,created_at,category_id,discount_percent," +
@@ -48,8 +49,25 @@ export const getActiveSales = cache(async (): Promise<ActiveSale[]> => {
   return (data ?? []) as ActiveSale[];
 });
 
+function toVariants(v: unknown): Variant[] {
+  if (Array.isArray(v)) return v as Variant[];
+  if (typeof v === "string") {
+    try {
+      return toVariants(JSON.parse(v));
+    } catch {
+      return [];
+    }
+  }
+  if (v && typeof v === "object") return [v as Variant]; // single object -> one-item list
+  return [];
+}
+
 function withPricing(list: RawProduct[], sales: ActiveSale[]): Product[] {
-  return list.map((p) => ({ ...p, pricing: priceFor(p, sales) }));
+  return list.map((p) => {
+    const variants = sortSizes(toVariants(p.variants));
+    return { ...p, variants, pricing: priceFor({ ...p, variants }, sales) };
+  });
+
 }
 
 export async function getProducts(

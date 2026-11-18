@@ -21,7 +21,7 @@ export async function generateMetadata({
   if (!p) return {};
   const description = p.description.slice(0, 155) || undefined;
   return {
-    title: p.name,
+    title: p.category?.size_type !== "none" && p.variants[0] ? `${p.name} (Size ${p.variants[0].size})` : p.name,
     description,
     alternates: { canonical: `/product/${p.slug}` },
     openGraph: {
@@ -131,6 +131,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <SizePicker
               product={{ id: product.id, slug: product.slug, name: product.name, price: pricing.price, image: product.images[0] ?? null }}
               sizeType={product.category?.size_type ?? "none"}
+              moreHref={`/shop?category=${product.category?.slug ?? ""}`}
               variants={product.variants}
               whatsapp={settings.whatsapp_number}
             />

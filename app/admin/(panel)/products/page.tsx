@@ -4,12 +4,12 @@ import ActionButton from "@/components/admin/action-button";
 import PageHeader from "@/components/admin/page-header";
 import { requireAdmin } from "@/lib/admin";
 import { deleteProduct, setProductActive } from "@/lib/actions/products";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, sortSizes } from "@/lib/format";
 import { discountedPrice } from "@/lib/pricing";
 
 export const metadata = { title: "Products" };
 
-type Search = { q?: string; status?: string; category?: string };
+type Search = { q?: string; status?: string; category?: string; size?: string };
 type Row = {
   id: string;
   name: string;
@@ -20,6 +20,11 @@ type Row = {
   featured: boolean;
   category: { name: string } | null;
   variants: { size: string; stock: number }[];
+};
+
+const sizeOf = (p: Row) => {
+  const s = p.variants[0]?.size;
+  return s && s !== "One size" ? s : null;
 };
 
 function Thumb({ src, name }: { src?: string; name: string }) {
@@ -47,17 +52,7 @@ function Price({ p }: { p: Row }) {
 
 function Stock({ variants }: { variants: Row["variants"] }) {
   const total = variants.reduce((n, v) => n + v.stock, 0);
-  const out = variants.filter((v) => v.stock === 0).length;
-  return (
-    <span>
-      <span className={total === 0 ? "font-medium text-red-600" : ""}>{total === 0 ? "Sold out" : `${total} in stock`}</span>
-      {total > 0 && out > 0 && (
-        <span className="block text-xs text-amber-700">
-          {out} {out === 1 ? "size" : "sizes"} sold out
-        </span>
-      )}
-    </span>
-  );
+  return <span className={total === 0 ? "font-medium text-red-600" : ""}>{total === 0 ? "Sold out" : `${total} in stock`}</span>;
 }
 
 function Actions({ p }: { p: Row }) {
@@ -67,6 +62,9 @@ function Actions({ p }: { p: Row }) {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
       <Link href={`/admin/products/${p.id}`} className={link}>
         Edit<span className="sr-only"> {p.name}</span>
+      </Link>
+      <Link href={`/admin/products/new?from=${p.id}`} className={link}>
+        Add another size<span className="sr-only"> of {p.name}</span>
       </Link>
       <ActionButton
         action={setProductActive.bind(null, p.id, !p.active)}
@@ -78,7 +76,7 @@ function Actions({ p }: { p: Row }) {
       </ActionButton>
       <ActionButton
         action={deleteProduct.bind(null, p.id)}
-        confirm={`Delete "${p.name}"? This cannot be undone.`}
+        confirm={`Delete "${p.name}"${sizeOf(p) ? ` (size ${sizeOf(p)})` : ""}? This cannot be undone.`}
         successMessage="Product deleted"
         className="text-sm text-muted underline underline-offset-4 transition hover:text-red-600 disabled:opacity-50"
       >
@@ -108,12 +106,17 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   if (activeCat) query = query.eq("category_id", activeCat.id);
 
   const { data } = await query;
-  const rows = (data ?? []) as unknown as Row[];
+  const all = (data ?? []) as unknown as Row[];
+
+  const sizes = sortSizes([...new Set(all.map(sizeOf).filter((s): s is string => Boolean(s)))].map((size) => ({ size }))).map((s) => s.size);
+  const activeSize = sp.size && sizes.includes(sp.size) ? sp.size : undefined;
+  const rows = activeSize ? all.filter((p) => sizeOf(p) === activeSize) : all;
 
   const base: Record<string, string | undefined> = {
     q: q || undefined,
     status: status === "all" ? undefined : status,
     category: activeCat?.slug,
+    size: activeSize,
   };
   const href = (next: Record<string, string | undefined> = {}) => {
     const p = new URLSearchParams();
@@ -130,7 +133,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     <div>
       <PageHeader
         title="Products"
-        description="Everything in your shop. Hidden products can’t be seen or bought."
+        description="Each listing is one item in one size. Use “Add another size” to post the same item in a different size."
         actions={
           <Link href="/admin/products/new" className="btn-primary">
             + New product
@@ -141,6 +144,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       <form action="/admin/products" method="get" role="search" className="flex flex-wrap gap-2">
         {status !== "all" && <input type="hidden" name="status" value={status} />}
         {activeCat && <input type="hidden" name="category" value={activeCat.slug} />}
+        {activeSize && <input type="hidden" name="size" value={activeSize} />}
         <label htmlFor="product-search" className="sr-only">
           Search products
         </label>
@@ -162,19 +166,32 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           ))}
         </nav>
         <nav aria-label="Category" className="flex flex-wrap gap-2">
-          <Link href={href({ category: undefined })} aria-current={!activeCat ? "page" : undefined} className={pill(!activeCat)}>
+          <Link href={href({ category: undefined, size: undefined })} aria-current={!activeCat ? "page" : undefined} className={pill(!activeCat)}>
             All categories
           </Link>
           {cats.map((c) => (
-            <Link key={c.id} href={href({ category: c.slug })} aria-current={activeCat?.id === c.id ? "page" : undefined} className={pill(activeCat?.id === c.id)}>
+            <Link key={c.id} href={href({ category: c.slug, size: undefined })} aria-current={activeCat?.id === c.id ? "page" : undefined} className={pill(activeCat?.id === c.id)}>
               {c.name}
             </Link>
           ))}
         </nav>
+        {sizes.length > 0 && (
+          <nav aria-label="Size" className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted">Size</span>
+            <Link href={href({ size: undefined })} aria-current={!activeSize ? "page" : undefined} className={pill(!activeSize)}>
+              All
+            </Link>
+            {sizes.map((s) => (
+              <Link key={s} href={href({ size: s })} aria-current={activeSize === s ? "page" : undefined} className={pill(activeSize === s)}>
+                {s}
+              </Link>
+            ))}
+          </nav>
+        )}
       </div>
 
       <p aria-live="polite" className="mt-5 text-sm text-muted">
-        {rows.length} {rows.length === 1 ? "product" : "products"}
+        {rows.length} {rows.length === 1 ? "listing" : "listings"}
       </p>
 
       {rows.length === 0 ? (
@@ -188,6 +205,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                 <tr>
                   <th scope="col" className="px-5 py-3 font-medium">Product</th>
                   <th scope="col" className="px-5 py-3 font-medium">Category</th>
+                  <th scope="col" className="px-5 py-3 font-medium">Size</th>
                   <th scope="col" className="px-5 py-3 font-medium">Price</th>
                   <th scope="col" className="px-5 py-3 font-medium">Stock</th>
                   <th scope="col" className="px-5 py-3 font-medium">Status</th>
@@ -209,6 +227,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                       </div>
                     </td>
                     <td className="px-5 py-3 text-muted">{p.category?.name}</td>
+                    <td className="px-5 py-3">{sizeOf(p) ?? <span className="text-muted">–</span>}</td>
                     <td className="px-5 py-3">
                       <Price p={p} />
                     </td>
@@ -238,7 +257,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                     <Link href={`/admin/products/${p.id}`} className="block truncate font-medium">
                       {p.name}
                     </Link>
-                    <p className="text-xs text-muted">{p.category?.name}</p>
+                    <p className="text-xs text-muted">
+                      {p.category?.name}
+                      {sizeOf(p) && ` · Size ${sizeOf(p)}`}
+                    </p>
                     <p className="mt-1 text-sm">
                       <Price p={p} />
                     </p>

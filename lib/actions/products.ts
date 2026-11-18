@@ -6,6 +6,8 @@ import { requireAdmin } from "@/lib/admin";
 import { slugify } from "@/lib/slug";
 import { isOwnStorageUrl } from "@/lib/storage";
 
+type Result = { ok: true } | { ok: false; error: string };
+
 const schema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(2).max(120),
@@ -15,30 +17,26 @@ const schema = z.object({
   images: z.array(z.string().max(600)).max(8),
   active: z.boolean(),
   featured: z.boolean(),
-  variants: z
-    .array(
-      z.object({
-        size: z.string().trim().min(1).max(12).regex(/^[A-Za-z0-9 ./-]+$/),
-        stock: z.number().int().min(0).max(100000),
-        changed: z.boolean(), // only changed sizes get their stock written
-      }),
-    )
-    .min(1)
-    .max(30),
+  size: z.string().trim().max(12).regex(/^[A-Za-z0-9 ./-]*$/).nullable(),
+  stock: z.number().int().min(0).max(100000),
+  stockChanged: z.boolean(), // only write stock when the admin changed it, so a sale isn't overwritten
 });
 
-export async function saveProduct(input: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function saveProduct(input: unknown): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const { supabase } = await requireAdmin();
 
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Please check the form: a name, a price and at least one size with stock are required." };
+    return { ok: false, error: "Please check the form: a name, a price and the quantity in stock are required." };
   }
   const d = parsed.data;
   if (!d.images.every(isOwnStorageUrl)) return { ok: false, error: "One of the images is invalid. Please upload it again." };
 
-  const sizes = d.variants.map((v) => v.size);
-  if (new Set(sizes).size !== sizes.length) return { ok: false, error: "Each size can only appear once." };
+  const { data: cat } = await supabase.from("categories").select("size_type").eq("id", d.categoryId).maybeSingle();
+  if (!cat) return { ok: false, error: "Choose a category." };
+
+  const size = cat.size_type === "none" ? "One size" : (d.size ?? "").trim();
+  if (!size) return { ok: false, error: "Choose the size this product is posted under." };
 
   const fields = {
     category_id: d.categoryId,
@@ -51,11 +49,13 @@ export async function saveProduct(input: unknown): Promise<{ ok: true } | { ok: 
   };
 
   let productId = d.id;
+  const creating = !productId;
+
   if (productId) {
     const { error } = await supabase.from("products").update(fields).eq("id", productId);
     if (error) return { ok: false, error: error.message };
   } else {
-    const base = slugify(d.name);
+    const base = size === "One size" ? slugify(d.name) : `${slugify(d.name)}-${slugify(size)}`;
     const { data: taken } = await supabase.from("products").select("id").eq("slug", base).maybeSingle();
     const slug = taken ? `${base}-${Math.random().toString(36).slice(2, 6)}` : base;
     const { data, error } = await supabase.from("products").insert({ ...fields, slug }).select("id").single();
@@ -63,25 +63,31 @@ export async function saveProduct(input: unknown): Promise<{ ok: true } | { ok: 
     productId = data.id as string;
   }
 
-  // Only write stock for new or changed sizes, so a customer's purchase isn't overwritten by a stale form
-  const toWrite = d.variants.filter((v) => v.changed);
-  if (toWrite.length > 0) {
-    const { error } = await supabase
-      .from("product_variants")
-      .upsert(
-        toWrite.map((v) => ({ product_id: productId, size: v.size, stock: v.stock })),
-        { onConflict: "product_id,size" },
-      );
-    if (error) return { ok: false, error: error.message };
+  const { data: existing } = await supabase.from("product_variants").select("id,size").eq("product_id", productId);
+  const rows = existing ?? [];
+
+  if (rows.length > 1) {
+    return {
+      ok: false,
+      error: "This product still has several sizes in one listing. Run the size-split SQL first, then reload this page.",
+    };
   }
 
-  // Sizes that were removed from the form
-  const { data: existing } = await supabase.from("product_variants").select("id,size").eq("product_id", productId);
-  const removeIds = (existing ?? []).filter((v) => !sizes.includes(v.size)).map((v) => v.id);
-  if (removeIds.length > 0) await supabase.from("product_variants").delete().in("id", removeIds);
+  if (rows.length === 1) {
+    const patch: { size: string; stock?: number } = { size };
+    if (d.stockChanged) patch.stock = d.stock;
+    const { error } = await supabase.from("product_variants").update(patch).eq("id", rows[0].id);
+    if (error) return { ok: false, error: error.message };
+  } else {
+    const { error } = await supabase.from("product_variants").insert({ product_id: productId, size, stock: d.stock });
+    if (error) {
+      if (creating) await supabase.from("products").delete().eq("id", productId); // don't leave an empty listing behind
+      return { ok: false, error: error.message };
+    }
+  }
 
   revalidatePath("/admin/products");
-  return { ok: true };
+  return { ok: true, id: productId };
 }
 
 export async function setProductActive(productId: string, active: boolean) {
@@ -99,10 +105,7 @@ export async function deleteProduct(productId: string) {
   revalidatePath("/admin/products");
 }
 
-export async function setProductDiscount(
-  productId: string,
-  percent: number | null,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function setProductDiscount(productId: string, percent: number | null): Promise<Result> {
   const { supabase } = await requireAdmin();
   if (!z.string().uuid().safeParse(productId).success) return { ok: false, error: "Invalid product." };
   const p = z.number().int().min(1).max(90).nullable().safeParse(percent);

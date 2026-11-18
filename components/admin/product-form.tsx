@@ -10,8 +10,7 @@ import type { SizeType } from "@/lib/types";
 import { uploadImage } from "@/lib/upload";
 
 type Cat = { id: string; name: string; size_type: SizeType };
-export type ProductData = {
-  id: string;
+type Template = {
   name: string;
   category_id: string;
   description: string;
@@ -19,8 +18,8 @@ export type ProductData = {
   images: string[];
   active: boolean;
   featured: boolean;
-  variants: { size: string; stock: number }[];
 };
+export type ProductData = Template & { id: string; variants: { size: string; stock: number }[] };
 
 function Card({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -32,34 +31,36 @@ function Card({ title, hint, children }: { title: string; hint?: string; childre
   );
 }
 
-export default function ProductForm({ categories, product }: { categories: Cat[]; product?: ProductData }) {
+export default function ProductForm({
+  categories,
+  product,
+  template,
+}: {
+  categories: Cat[];
+  product?: ProductData; // editing
+  template?: Template; // "add another size": same details, new size
+}) {
   const router = useRouter();
   const toast = useToast();
+  const base = product ?? template;
 
-  const [name, setName] = useState(product?.name ?? "");
-  const [categoryId, setCategoryId] = useState(product?.category_id ?? categories[0]?.id ?? "");
-  const [price, setPrice] = useState(product ? (product.price_pesewas / 100).toFixed(2) : "");
-  const [description, setDescription] = useState(product?.description ?? "");
-  const [images, setImages] = useState<string[]>(product?.images ?? []);
-  const [active, setActive] = useState(product?.active ?? true);
-  const [featured, setFeatured] = useState(product?.featured ?? false);
-  const [stock, setStock] = useState<Record<string, string>>(() =>
-    Object.fromEntries((product?.variants ?? []).map((v) => [v.size, String(v.stock)])),
-  );
-  const [extraSizes, setExtraSizes] = useState<string[]>([]);
+  const [name, setName] = useState(base?.name ?? "");
+  const [categoryId, setCategoryId] = useState(base?.category_id ?? categories[0]?.id ?? "");
+  const [price, setPrice] = useState(base ? (base.price_pesewas / 100).toFixed(2) : "");
+  const [description, setDescription] = useState(base?.description ?? "");
+  const [images, setImages] = useState<string[]>(base?.images ?? []);
+  const [active, setActive] = useState(base?.active ?? true);
+  const [featured, setFeatured] = useState(base?.featured ?? false);
+  const [size, setSize] = useState(product?.variants[0]?.size ?? "");
+  const [stock, setStock] = useState(product ? String(product.variants[0]?.stock ?? "") : "");
   const [custom, setCustom] = useState("");
-  const [bulk, setBulk] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // stock as it was when the page loaded, to know which sizes the admin actually changed
-  const initialStock = useMemo(
-    () => Object.fromEntries((product?.variants ?? []).map((v) => [v.size, String(v.stock)])),
-    [product],
-  );
+  const initialStock = useRef(product ? String(product.variants[0]?.stock ?? "") : "");
 
   // unsaved-changes tracking
-  const snapshot = JSON.stringify({ name, categoryId, price, description, images, active, featured, stock });
+  const snapshot = JSON.stringify({ name, categoryId, price, description, images, active, featured, size, stock });
   const initialSnapshot = useRef<string | null>(null);
   if (initialSnapshot.current === null) initialSnapshot.current = snapshot;
   const dirty = snapshot !== initialSnapshot.current;
@@ -75,35 +76,28 @@ export default function ProductForm({ categories, product }: { categories: Cat[]
   }, [dirty]);
 
   const sizeType = categories.find((c) => c.id === categoryId)?.size_type ?? "none";
-  const sizeList = useMemo(() => {
-    const all = new Set([...SIZE_PRESETS[sizeType], ...Object.keys(stock), ...extraSizes]);
-    return sortSizes([...all].map((size) => ({ size }))).map((x) => x.size);
-  }, [sizeType, stock, extraSizes]);
+  const sized = sizeType !== "none";
 
-  const offered = sizeList.filter((s) => (stock[s] ?? "").trim() !== "");
-  const units = offered.reduce((n, s) => n + (Number(stock[s]) || 0), 0);
+  const sizeOptions = useMemo(() => {
+    const presets = SIZE_PRESETS[sizeType];
+    const all = size && !presets.includes(size) && size !== "One size" ? [...presets, size] : presets;
+    return sortSizes(all.map((s) => ({ size: s }))).map((x) => x.size);
+  }, [sizeType, size]);
 
   function changeCategory(id: string) {
     const nextType = categories.find((c) => c.id === id)?.size_type ?? "none";
     setCategoryId(id);
-    setExtraSizes([]);
-    setStock((prev) => Object.fromEntries(Object.entries(prev).filter(([s]) => SIZE_PRESETS[nextType].includes(s))));
+    if (nextType === "none" || !SIZE_PRESETS[nextType].includes(size)) setSize("");
   }
 
-  function addCustomSize() {
+  function useCustomSize() {
     const s = custom.trim();
-    if (!s || !/^[A-Za-z0-9 ./-]{1,12}$/.test(s)) return;
-    setExtraSizes((prev) => (prev.includes(s) ? prev : [...prev, s]));
-    setCustom("");
-  }
-
-  function applyBulk() {
-    const n = Number(bulk);
-    if (bulk.trim() === "" || !Number.isInteger(n) || n < 0) {
-      toast.error("Enter a whole number (0 or more) to apply to every size.");
+    if (!s || !/^[A-Za-z0-9 ./-]{1,12}$/.test(s)) {
+      toast.error("Use up to 12 letters or numbers for the size.");
       return;
     }
-    setStock(Object.fromEntries(sizeList.map((s) => [s, String(n)])));
+    setSize(s);
+    setCustom("");
   }
 
   async function onFiles(files: FileList | null, input: HTMLInputElement) {
@@ -120,27 +114,19 @@ export default function ProductForm({ categories, product }: { categories: Cat[]
     setUploading(false);
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
+  async function submit(addAnother: boolean) {
     const priceNum = Number(price);
     if (!Number.isFinite(priceNum) || priceNum < 0 || price.trim() === "") {
       toast.error("Enter a valid price, for example 320.00");
       return;
     }
-
-    const variants: { size: string; stock: number; changed: boolean }[] = [];
-    for (const [size, raw] of Object.entries(stock)) {
-      if (raw.trim() === "") continue; // blank = this size isn't offered
-      const n = Number(raw);
-      if (!Number.isInteger(n) || n < 0) {
-        toast.error(`Stock for ${size} must be a whole number (0 or more).`);
-        return;
-      }
-      variants.push({ size, stock: n, changed: !product || initialStock[size] !== raw });
+    if (sized && !size) {
+      toast.error("Choose the size this product is posted under.");
+      return;
     }
-    if (variants.length === 0) {
-      toast.error("Enter a stock number for at least one size. Leave a size blank if you don't sell it.");
+    const stockNum = Number(stock);
+    if (stock.trim() === "" || !Number.isInteger(stockNum) || stockNum < 0) {
+      toast.error("Enter how many you have in stock (0 or more).");
       return;
     }
 
@@ -154,11 +140,19 @@ export default function ProductForm({ categories, product }: { categories: Cat[]
       images,
       active,
       featured,
-      variants,
+      size: sized ? size : null,
+      stock: stockNum,
+      stockChanged: !product || stock !== initialStock.current,
     });
+
     if (res.ok) {
-      toast.success(product ? "Product saved" : "Product created");
-      router.push("/admin/products");
+      if (addAnother) {
+        toast.success(`Created. Now add the next size.`);
+        router.push(`/admin/products/new?from=${res.id}`);
+      } else {
+        toast.success(product ? "Product saved" : "Product created");
+        router.push("/admin/products");
+      }
       router.refresh();
       return;
     }
@@ -171,10 +165,67 @@ export default function ProductForm({ categories, product }: { categories: Cat[]
     router.push("/admin/products");
   }
 
+  const stockState = stock.trim() === "" ? null : Number(stock) === 0 ? "Sold out" : "In stock";
+
   return (
-    <form onSubmit={onSubmit} className="pb-28">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit(false);
+      }}
+      className="pb-28"
+    >
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
+          <Card
+            title="Category and size"
+            hint={sized ? "Each listing is posted under one size. To sell the same item in another size, post it again for that size." : undefined}
+          >
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">Category</span>
+              <select value={categoryId} onChange={(e) => changeCategory(e.target.value)} className="field max-w-xs">
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {sized && (
+              <div>
+                <p id="size-label" className="mb-2 text-sm font-medium">
+                  Size
+                </p>
+                <div role="radiogroup" aria-labelledby="size-label" className="flex flex-wrap gap-2">
+                  {sizeOptions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      role="radio"
+                      aria-checked={size === s}
+                      onClick={() => setSize(s)}
+                      className={`min-h-11 min-w-12 rounded-lg border px-4 text-sm transition ${
+                        size === s ? "border-accent bg-accent text-white" : "border-border bg-surface hover:border-accent"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-end gap-2">
+                  <label className="block text-xs text-muted">
+                    Another size
+                    <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="e.g. 46" maxLength={12} className="field mt-1 w-32" />
+                  </label>
+                  <button type="button" onClick={useCustomSize} className="rounded-lg border border-border px-3 py-2.5 text-sm transition hover:border-accent">
+                    Use this size
+                  </button>
+                </div>
+              </div>
+            )}
+          </Card>
+
           <Card title="Details">
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Product name</span>
@@ -217,73 +268,31 @@ export default function ProductForm({ categories, product }: { categories: Cat[]
               )}
             </div>
           </Card>
-
-          <Card
-            title={sizeType === "none" ? "Stock" : "Sizes and stock"}
-            hint={
-              sizeType === "none"
-                ? "How many do you have?"
-                : "Type how many you have in each size. Leave a size blank if you don't sell it. 0 means sold out."
-            }
-          >
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-              {sizeList.map((size) => {
-                const raw = stock[size] ?? "";
-                const state = raw.trim() === "" ? "Not sold" : Number(raw) === 0 ? "Sold out" : "In stock";
-                return (
-                  <label key={size} className="block rounded-xl border border-border bg-background p-3">
-                    <span className="flex items-center justify-between text-sm font-medium">
-                      {size}
-                      <span className={`text-[11px] font-normal ${state === "Sold out" ? "text-red-600" : "text-muted"}`}>{state}</span>
-                    </span>
-                    <input
-                      value={raw}
-                      onChange={(e) => setStock((p) => ({ ...p, [size]: e.target.value }))}
-                      inputMode="numeric"
-                      placeholder="–"
-                      aria-label={`Stock for ${size}`}
-                      className="field mt-2"
-                    />
-                  </label>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-wrap items-end gap-x-6 gap-y-3 border-t border-border pt-4">
-              <div className="flex items-end gap-2">
-                <label className="block text-xs text-muted">
-                  Set every size to
-                  <input value={bulk} onChange={(e) => setBulk(e.target.value)} inputMode="numeric" placeholder="5" className="field mt-1 w-24" />
-                </label>
-                <button type="button" onClick={applyBulk} className="rounded-lg border border-border px-3 py-2.5 text-sm transition hover:border-accent">
-                  Apply
-                </button>
-              </div>
-              {sizeType !== "none" && (
-                <div className="flex items-end gap-2">
-                  <label className="block text-xs text-muted">
-                    Add another size
-                    <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="e.g. 46" maxLength={12} className="field mt-1 w-28" />
-                  </label>
-                  <button type="button" onClick={addCustomSize} className="rounded-lg border border-border px-3 py-2.5 text-sm transition hover:border-accent">
-                    Add
-                  </button>
-                </div>
-              )}
-              <p className="text-sm text-muted sm:ml-auto" aria-live="polite">
-                {units} {units === 1 ? "unit" : "units"} across {offered.length} {offered.length === 1 ? "size" : "sizes"}
-              </p>
-            </div>
-
-            {product && (
-              <p className="text-xs text-muted">
-                Stock numbers are a snapshot from when you opened this page. Orders may have come in since, so reload before editing a busy product.
-              </p>
-            )}
-          </Card>
         </div>
 
         <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+          <Card title="Price and stock">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">Price</span>
+              <div className="relative">
+                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-muted">
+                  GHS
+                </span>
+                <input value={price} onChange={(e) => setPrice(e.target.value)} required inputMode="decimal" placeholder="320.00" className="field pl-12" />
+              </div>
+            </label>
+            <label className="block">
+              <span className="mb-1.5 flex items-center justify-between text-sm font-medium">
+                {sized ? (size ? `How many in size ${size}?` : "How many in this size?") : "How many do you have?"}
+                {stockState && <span className={`text-xs font-normal ${stockState === "Sold out" ? "text-red-600" : "text-muted"}`}>{stockState}</span>}
+              </span>
+              <input value={stock} onChange={(e) => setStock(e.target.value)} required inputMode="numeric" placeholder="1" className="field" />
+            </label>
+            {product && (
+              <p className="text-xs text-muted">This number is a snapshot from when you opened the page. Orders may have come in since, so reload before editing a busy product.</p>
+            )}
+          </Card>
+
           <Card title="Visibility">
             <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-border p-3">
               <span>
@@ -300,40 +309,23 @@ export default function ProductForm({ categories, product }: { categories: Cat[]
               <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="mt-1 h-5 w-5 accent-[var(--accent)]" />
             </label>
           </Card>
-
-          <Card title="Organise">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Category</span>
-              <select value={categoryId} onChange={(e) => changeCategory(e.target.value)} className="field">
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Price</span>
-              <div className="relative">
-                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-muted">
-                  GHS
-                </span>
-                <input value={price} onChange={(e) => setPrice(e.target.value)} required inputMode="decimal" placeholder="320.00" className="field pl-12" />
-              </div>
-            </label>
-          </Card>
         </div>
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 backdrop-blur lg:left-[260px]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8">
           <p aria-live="polite" className={`text-sm ${dirty ? "text-amber-700" : "text-muted"}`}>
-            {dirty ? "Unsaved changes" : product ? "No changes yet" : "New product"}
+            {dirty ? "Unsaved changes" : product ? "No changes yet" : template ? "Add the next size" : "New product"}
           </p>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button type="button" onClick={cancel} className="btn-outline">
               Cancel
             </button>
+            {!product && sized && (
+              <button type="button" onClick={() => submit(true)} disabled={saving || uploading} className="btn-outline">
+                Save and add another size
+              </button>
+            )}
             <button type="submit" disabled={saving || uploading} className="btn-primary">
               {saving ? "Saving…" : product ? "Save changes" : "Create product"}
             </button>
