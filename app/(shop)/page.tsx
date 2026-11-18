@@ -1,3 +1,4 @@
+import Ticker from "@/components/ticker";
 import Hero from "@/components/hero";
 import Image from "next/image";
 import Link from "next/link";
@@ -78,23 +79,12 @@ export default async function Home() {
   const arrivals = products.slice(0, 8);
   const imageFor = (slug: string) => products.find((p) => p.category?.slug === slug && p.images[0])?.images[0];
 
-  const ticker = ["New season", ...categories.map((c) => c.name), "Sized for you", "Pay online or with MoMo"];
-  const half = [...ticker, ...ticker];
 
   return (
     <>
       <Hero settings={settings} categories={categories} products={products} />
 
-      <div aria-hidden="true" className="marquee border-y border-accent-dark bg-accent-dark py-3.5 text-gold">
-        <div className="marquee-track">
-          {[...half, ...half].map((t, i) => (
-            <span key={i} className="flex items-center whitespace-nowrap font-display text-xl italic">
-              <span className="px-8">{t}</span>
-              <span className="text-xs not-italic text-gold/60">◆</span>
-            </span>
-          ))}
-        </div>
-      </div>
+      <Ticker categories={categories} />
 
       <section aria-label="Why shop with us" className="border-b border-border bg-cream">
         <ul className="container-page grid gap-6 py-8 sm:grid-cols-3">
