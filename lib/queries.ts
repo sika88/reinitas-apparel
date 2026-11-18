@@ -64,10 +64,9 @@ function toVariants(v: unknown): Variant[] {
 
 function withPricing(list: RawProduct[], sales: ActiveSale[]): Product[] {
   return list.map((p) => {
-    const variants = sortSizes(toVariants(p.variants));
-    return { ...p, variants, pricing: priceFor({ ...p, variants }, sales) };
+    const item = { ...p, variants: sortSizes(toVariants(p.variants)) };
+    return { ...item, pricing: priceFor(item, sales) };
   });
-
 }
 
 export async function getProducts(
