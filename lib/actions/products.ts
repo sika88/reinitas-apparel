@@ -87,6 +87,7 @@ export async function saveProduct(input: unknown): Promise<{ ok: true; id: strin
   }
 
   revalidatePath("/admin/products");
+  if (d.active) await supabase.from("categories").update({ visible: true }).eq("id", d.categoryId).eq("visible", false);
   return { ok: true, id: productId };
 }
 

@@ -1,8 +1,7 @@
 import { cache } from "react";
 import { priceFor, type ActiveSale } from "./pricing";
 import { publicClient } from "./supabase/public";
-import { sortSizes } from "./format";
-import type { Category, Product, SiteSettings, Variant } from "./types";
+import type { Category, Product, SiteSettings } from "./types";
 
 const PRODUCT_SELECT =
   "id,name,slug,description,price_pesewas,images,featured,created_at,category_id,discount_percent," +
@@ -31,13 +30,39 @@ export async function getSettings(): Promise<SiteSettings> {
   return (data as SiteSettings | null) ?? DEFAULT_SETTINGS;
 }
 
+// The shop menu, footer, home tiles and filters. Categories the admin has hidden are left out.
 export async function getCategories(): Promise<Category[]> {
-  const { data, error } = await publicClient()
+  const sb = publicClient();
+  const shown = await sb
     .from("categories")
     .select("id,name,slug,size_type")
+    .eq("visible", true)
     .order("sort_order");
-  if (error) throw new Error(error.message);
-  return (data ?? []) as Category[];
+  if (!shown.error) return (shown.data ?? []) as Category[];
+
+  // the "visible" column doesn't exist yet (database update not run): show every category
+  const all = await sb.from("categories").select("id,name,slug,size_type").order("sort_order");
+  if (all.error) throw new Error(all.error.message);
+  return (all.data ?? []) as Category[];
+}
+export async function getCategoryImages(categories: Category[]): Promise<Record<string, string>> {
+  const sb = publicClient();
+  const entries = await Promise.all(
+    categories.map(async (c) => {
+      const { data } = await sb
+        .from("products")
+        .select("images")
+        .eq("active", true)
+        .eq("category_id", c.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      const img = (data ?? [])
+        .map((r) => (r as { images: string[] | null }).images?.[0])
+        .find(Boolean);
+      return [c.slug, img] as const;
+    }),
+  );
+  return Object.fromEntries(entries.filter(([, img]) => img)) as Record<string, string>;
 }
 
 // Row Level Security only returns sales that are live right now
@@ -49,24 +74,8 @@ export const getActiveSales = cache(async (): Promise<ActiveSale[]> => {
   return (data ?? []) as ActiveSale[];
 });
 
-export function toVariants(v: unknown): Variant[] {
-  if (Array.isArray(v)) return v as Variant[];
-  if (typeof v === "string") {
-    try {
-      return toVariants(JSON.parse(v));
-    } catch {
-      return [];
-    }
-  }
-  if (v && typeof v === "object") return [v as Variant]; // single object -> one-item list
-  return [];
-}
-
 function withPricing(list: RawProduct[], sales: ActiveSale[]): Product[] {
-  return list.map((p) => {
-    const item = { ...p, variants: sortSizes(toVariants(p.variants)) };
-    return { ...item, pricing: priceFor(item, sales) };
-  });
+  return list.map((p) => ({ ...p, pricing: priceFor(p, sales) }));
 }
 
 export async function getProducts(
@@ -105,23 +114,3 @@ export const getProductBySlug = cache(async (slug: string): Promise<Product | nu
   if (!data) return null;
   return withPricing([data as unknown as RawProduct], sales)[0];
 });
-// One cover photo per category, taken from its newest visible product that has one
-export async function getCategoryImages(categories: Category[]): Promise<Record<string, string>> {
-  const sb = publicClient();
-  const entries = await Promise.all(
-    categories.map(async (c) => {
-      const { data } = await sb
-        .from("products")
-        .select("images")
-        .eq("active", true)
-        .eq("category_id", c.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      const img = (data ?? [])
-        .map((r) => (r as { images: string[] | null }).images?.[0])
-        .find(Boolean);
-      return [c.slug, img] as const;
-    }),
-  );
-  return Object.fromEntries(entries.filter(([, img]) => img)) as Record<string, string>;
-}
