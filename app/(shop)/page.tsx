@@ -6,7 +6,7 @@ import OnSaleSection from "@/components/on-sale-section";
 import ProductCard from "@/components/product-card";
 import Reveal from "@/components/reveal";
 import { waLink } from "@/lib/format";
-import { getCategories, getProducts, getSettings } from "@/lib/queries";
+import { getCategories, getCategoryImages, getProducts, getSettings } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata = { alternates: { canonical: "/" } };
@@ -74,10 +74,11 @@ function SectionHeading({ eyebrow, title, href, linkLabel }: { eyebrow: string; 
 export default async function Home() {
   const [settings, categories, products] = await Promise.all([getSettings(), getCategories(), getProducts({ limit: 24 })]);
 
+  const categoryImages = await getCategoryImages(categories);
   const hasHero = Boolean(settings.hero_image_url);
   const featured = products.filter((p) => p.featured).slice(0, 4);
   const arrivals = products.slice(0, 8);
-  const imageFor = (slug: string) => products.find((p) => p.category?.slug === slug && p.images[0])?.images[0];
+  const imageFor = (slug: string) => categoryImages[slug];
 
 
   return (

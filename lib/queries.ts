@@ -105,3 +105,23 @@ export const getProductBySlug = cache(async (slug: string): Promise<Product | nu
   if (!data) return null;
   return withPricing([data as unknown as RawProduct], sales)[0];
 });
+// One cover photo per category, taken from its newest visible product that has one
+export async function getCategoryImages(categories: Category[]): Promise<Record<string, string>> {
+  const sb = publicClient();
+  const entries = await Promise.all(
+    categories.map(async (c) => {
+      const { data } = await sb
+        .from("products")
+        .select("images")
+        .eq("active", true)
+        .eq("category_id", c.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      const img = (data ?? [])
+        .map((r) => (r as { images: string[] | null }).images?.[0])
+        .find(Boolean);
+      return [c.slug, img] as const;
+    }),
+  );
+  return Object.fromEntries(entries.filter(([, img]) => img)) as Record<string, string>;
+}
