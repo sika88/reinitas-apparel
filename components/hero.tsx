@@ -1,12 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import HeroArt from "@/components/hero-art";
+import HeroPromo from "@/components/hero-promo";
 import { waLink } from "@/lib/format";
+import { getPromo } from "@/lib/promo";
 import type { Category, Product, SiteSettings } from "@/lib/types";
 
 const delay = (ms: number) => ({ "--d": `${ms}ms` }) as React.CSSProperties;
 
-export default function Hero({
+export default async function Hero({
   settings,
   categories,
   products,
@@ -15,7 +17,10 @@ export default function Hero({
   categories: Category[];
   products: Product[];
 }) {
+  const promo = await getPromo();
   const hasHero = Boolean(settings.hero_image_url);
+  const showPromo = promo.enabled;
+  const showArt = !showPromo && !hasHero;
 
   return (
     <section className="relative isolate overflow-hidden bg-accent text-cream">
@@ -28,7 +33,11 @@ export default function Hero({
         <div aria-hidden="true" className="hero-glow absolute inset-0 -z-10" />
       )}
 
-      <div className={`container-page grid items-center gap-10 py-16 sm:py-24 lg:py-28 ${hasHero ? "" : "md:grid-cols-[1.05fr_0.95fr]"}`}>
+      <div
+        className={`container-page grid items-center gap-10 py-16 sm:py-24 lg:py-28 ${
+          showPromo || showArt ? "md:grid-cols-[1.05fr_0.95fr]" : ""
+        }`}
+      >
         <div>
           <p className="fade-up flex items-center gap-3 text-xs uppercase tracking-[0.28em] text-gold" style={delay(0)}>
             <span aria-hidden="true" className="line-grow inline-block h-px w-10 bg-gold" style={delay(200)} />
@@ -60,7 +69,12 @@ export default function Hero({
           </div>
         </div>
 
-        {!hasHero && <HeroArt products={products} categories={categories} />}
+        {showPromo && (
+          <div className="pop-in" style={delay(500)}>
+            <HeroPromo promo={promo} priority />
+          </div>
+        )}
+        {showArt && <HeroArt products={products} categories={categories} />}
       </div>
     </section>
   );

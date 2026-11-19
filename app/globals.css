@@ -199,3 +199,20 @@ body {
   transform: translateX(-130%);
   animation: shine 5.5s ease-in-out 3s infinite;
 }
+
+/* ---------- Hero promo (hangs from a pin and swings) ---------- */
+@keyframes promo-swing {
+  from { transform: rotate(-4.5deg); }
+  to { transform: rotate(4.5deg); }
+}
+@keyframes promo-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+.promo-swing { transform-origin: 50% 0; animation: promo-swing 4.2s ease-in-out infinite alternate; }
+.promo-float { animation: promo-float 7s ease-in-out infinite; }
+.promo-swing:hover, .promo-float:hover { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .promo-swing, .promo-float { animation: none !important; transform: none !important; }
+}
