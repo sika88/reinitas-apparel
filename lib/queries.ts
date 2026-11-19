@@ -75,7 +75,12 @@ export const getActiveSales = cache(async (): Promise<ActiveSale[]> => {
 });
 
 function withPricing(list: RawProduct[], sales: ActiveSale[]): Product[] {
-  return list.map((p) => ({ ...p, pricing: priceFor(p, sales) }));
+  return list.map((p) => {
+    const raw = (p as { variants?: unknown }).variants;
+    const variants = Array.isArray(raw) ? raw : raw ? [raw] : [];
+    const fixed = { ...p, variants } as RawProduct;
+    return { ...fixed, pricing: priceFor(fixed, sales) };
+  });
 }
 
 export async function getProducts(
