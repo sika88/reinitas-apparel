@@ -19,7 +19,7 @@ export default function TickerView({
 
   // repeat the phrases until one row is wider than a big screen, then keep the same speed whatever the length
   const unit = (s: string) => s.length * (sale ? 14 : 11) + 90;
-  const baseWidth = items.reduce((n, s) => n + unit(s), 0);
+  const baseWidth = (Array.isArray(items) ? items : []).reduce((n, s) => n + unit(s), 0);
   const repeats = Math.min(30, Math.max(1, Math.ceil(2000 / baseWidth)));
   const row = Array.from({ length: repeats }).flatMap(() => items);
   const seconds = Math.min(240, Math.max(16, (baseWidth * repeats) / PX_PER_SECOND[speed]));

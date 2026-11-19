@@ -6,7 +6,7 @@ import type { Product } from "@/lib/types";
 
 export default function ProductCard({ product: p }: { product: Product }) {
   const variants = p.variants;
-  const totalStock = variants.reduce((sum, v) => sum + v.stock, 0);
+  const totalStock = (Array.isArray(variants) ? variants : []).reduce((sum, v) => sum + v.stock, 0);
   const low = totalStock > 0 && totalStock <= 3;
   const sized = p.category?.size_type !== "none";
   const single = variants.length === 1 ? variants[0].size : null; // one size per listing
