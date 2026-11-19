@@ -58,7 +58,8 @@ function Price({ p }: { p: Row }) {
 }
 
 function Stock({ variants }: { variants: Row["variants"] }) {
-  const total = (Array.isArray(variants) ? variants : []).reduce((n, v) => n + v.stock, 0);
+  const list = Array.isArray(variants) ? variants : variants ? [variants] : [];
+  const total = list.reduce((n, v) => n + v.stock, 0);
   return <span className={total === 0 ? "font-medium text-red-600" : "font-medium"}>{total === 0 ? "Sold out" : `${total} in stock`}</span>;
 }
 
