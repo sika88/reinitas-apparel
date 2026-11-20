@@ -2,12 +2,18 @@ import SaleBanner from "@/components/sale-banner";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
 import { CartProvider } from "@/lib/cart";
+import { getCallNumber } from "@/lib/call";
 import { getActiveSales, getCategories, getSettings } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
-  const [settings, categories, sales] = await Promise.all([getSettings(), getCategories(), getActiveSales()]);
+  const [settings, categories, sales, callNumber] = await Promise.all([
+    getSettings(),
+    getCategories(),
+    getActiveSales(),
+    getCallNumber(),
+  ]);
   const topSale = sales[0]; // the biggest live discount (the query sorts by percentage)
 
   return (
@@ -19,7 +25,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
         Skip to content
       </a>
       {topSale && <SaleBanner sale={topSale} />}
-      <SiteHeader settings={settings} categories={categories} hasSale={Boolean(topSale)} />
+      <SiteHeader settings={settings} categories={categories} hasSale={Boolean(topSale)} callNumber={callNumber} />
       <main id="main" className="flex-1">
         {children}
       </main>

@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 
-export default function MobileMenu({ links }: { links: { href: string; label: string }[] }) {
+export default function MobileMenu({
+  links,
+  call,
+}: {
+  links: { href: string; label: string }[];
+  call?: { href: string; label: string };
+}) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
 
@@ -50,6 +56,20 @@ export default function MobileMenu({ links }: { links: { href: string; label: st
               </li>
             ))}
           </ul>
+
+          {call && (
+            <a
+              href={call.href}
+              className="mt-3 flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm transition hover:border-accent"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-accent" aria-hidden="true">
+                <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A15 15 0 0 1 4 5a1 1 0 0 1 1-1Z" />
+              </svg>
+              <span>
+                Call us <span className="font-medium">{call.label}</span>
+              </span>
+            </a>
+          )}
         </nav>
       )}
     </div>

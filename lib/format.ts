@@ -20,3 +20,15 @@ export function sortSizes<T extends { size: string }>(variants: T[]): T[] {
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
   });
 }
+
+// "233540245553" -> "054 024 5553". Other numbers are shown as "+<digits>".
+export function formatPhone(intl: string) {
+  const d = intl.replace(/\D/g, "");
+  if (d.length === 12 && d.startsWith("233")) {
+    const local = "0" + d.slice(3);
+    return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
+  }
+  return d ? `+${d}` : "";
+}
+
+export const telHref = (intl: string) => `tel:+${intl.replace(/\D/g, "")}`;

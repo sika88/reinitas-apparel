@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { saveSettings } from "@/lib/actions/settings";
 import { useToast } from "@/components/admin/toast";
+import { saveSettings } from "@/lib/actions/settings";
 import { uploadImage } from "@/lib/upload";
 
 type Initial = {
   business_name: string;
   tagline: string;
   whatsapp_number: string;
+  call_number: string;
   admin_phone: string;
   momo_number: string;
   momo_name: string;
@@ -100,8 +101,7 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
     if (res.ok) {
       setSaved(true);
       toast.success("Settings saved");
-    }
-    else setError(res.error);
+    } else setError(res.error);
     setSaving(false);
   }
 
@@ -193,6 +193,13 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
           <span className="font-medium">WhatsApp number for customers</span>
           <input value={v.whatsapp_number} onChange={(e) => set("whatsapp_number", e.target.value)} placeholder="0241234567" className={field} />
           <span className="text-xs text-muted">Customers tap this to chat with you about a product or an order.</span>
+        </label>
+        <label className="block space-y-1.5 text-sm">
+          <span className="font-medium">Phone number for customers to call</span>
+          <input value={v.call_number} onChange={(e) => set("call_number", e.target.value)} inputMode="tel" placeholder="0241234567" className={field} />
+          <span className="text-xs text-muted">
+            Shown as “Call us” at the top of every page of the shop. Customers tap it to call you. Leave it empty to hide it.
+          </span>
         </label>
         <label className="block space-y-1.5 text-sm">
           <span className="font-medium">Phone number for order SMS alerts</span>
