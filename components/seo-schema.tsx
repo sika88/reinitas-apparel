@@ -6,15 +6,16 @@ export default function SeoSchema({ settings }: { settings: SiteSettings }) {
   const name = settings.business_name;
   const alt = nameVariants(name);
   const sameAs = socialLinks();
-  const digits = settings.whatsapp_number.replace(/\D/g, "");
+  const digits = (settings.whatsapp_number ?? "").replace(/\D/g, "");
 
   const graph = [
     {
-      "@type": "Organization",
+      "@type": "OnlineStore",
       "@id": `${SITE_URL}/#organization`,
       name,
       alternateName: alt.length ? alt : undefined,
       url: SITE_URL,
+      areaServed: "GH",
       logo: { "@type": "ImageObject", url: `${SITE_URL}/icon.png`, width: 192, height: 192 },
       image: settings.logo_url ?? undefined,
       description: `${name} sells dresses, shoes, sneakers, bags and more online in Ghana.`,

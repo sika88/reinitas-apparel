@@ -20,8 +20,8 @@ export const viewport: Viewport = { themeColor: "#5B1A2B" };
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
   const name = s.business_name;
-  const title = `${name} | Dresses, Shoes, Bags and More`;
-  const description = `Shop dresses, shoes, sneakers, bags and more at ${name}, online in Ghana. Pay online or with MoMo.`;
+  const title = `${name} | Ladies Dresses, Shoes and Bags in Ghana`;
+  const description = `Shop ladies dresses, shoes and bags online in Ghana. Church, work, wedding guest and outing styles from ${name}. Pay with card or MoMo.`;
 
   return {
     metadataBase: new URL(SITE_URL),

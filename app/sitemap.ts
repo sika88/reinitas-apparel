@@ -3,7 +3,7 @@ import { publicClient } from "@/lib/supabase/public";
 
 export const dynamic = "force-dynamic";
 
-const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+import { SITE_URL as base } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: products } = await publicClient().from("products").select("slug").eq("active", true);

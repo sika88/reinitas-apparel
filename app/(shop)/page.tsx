@@ -104,7 +104,7 @@ export default async function Home() {
       </section>
 
       <section className="container-page pt-16">
-        <SectionHeading eyebrow="Browse" title="Shop by category" />
+        <SectionHeading eyebrow="Browse" title="Shop ladies dresses, shoes and bags" />
         <ul className="grid gap-4 sm:grid-cols-3">
           {categories.map((c, i) => {
             const img = imageFor(c.slug);
@@ -164,6 +164,19 @@ export default async function Home() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="container-page pt-20">
+        <Reveal>
+          <div className="max-w-3xl">
+            <h2 className="font-display text-4xl font-medium">Ladies dresses, shoes and bags in Ghana</h2>
+            <p className="mt-4 text-muted">
+              {settings.business_name} is an online store for ladies fashion in Ghana. Find dresses for church, work,
+              weddings and dinners, plus shoes and bags for every outing. Choose your size, pay by card or Mobile Money,
+              and message us on WhatsApp if you need help.
+            </p>
+          </div>
+        </Reveal>
       </section>
 
       {settings.whatsapp_number && (
