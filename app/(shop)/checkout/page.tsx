@@ -88,8 +88,9 @@ export default function CheckoutPage() {
               </label>
             </div>
             <label className="block">
-              {label("Email", method === "momo")}
-              <input name="email" type="email" required={method === "paystack"} autoComplete="email" className="field" />
+              {label("Email", true)}
+              <input name="email" type="email" autoComplete="email" className="field" />
+              <span className="mt-1.5 block text-xs text-muted">Optional. We use it to email your payment receipt.</span>
             </label>
           </section>
 

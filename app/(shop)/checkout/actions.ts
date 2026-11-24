@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { clientKey } from "@/lib/client-ip";
 import { notifyNewOrder } from "@/lib/notify";
+import { payerEmail } from "@/lib/payer-email";
 import { initializePaystack } from "@/lib/paystack";
 import { normalizeGhPhone } from "@/lib/phone";
 import { rateLimit } from "@/lib/rate-limit";
@@ -44,14 +45,11 @@ function friendlyError(message: string) {
 // A Server Action is a public endpoint: everything is validated here, prices come from the database.
 export async function placeOrder(input: unknown): Promise<Result> {
   const parsed = schema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Please check your details and try again." };
+  if (!parsed.success) return { ok: false, error: "Please check your details and try again. If you added an email, make sure it is written correctly." };
   const d = parsed.data;
 
   const phone = normalizeGhPhone(d.phone);
   if (!phone) return { ok: false, error: "Enter a valid phone number, for example 0241234567." };
-  if (d.method === "paystack" && !d.email) {
-    return { ok: false, error: "An email address is needed for online payment." };
-  }
 
   // at most 8 order attempts per visitor every 10 minutes
   if (!(await rateLimit(`order:${await clientKey()}`, 8, 600))) {
@@ -71,7 +69,7 @@ export async function placeOrder(input: unknown): Promise<Result> {
     p_reference: reference,
     p_name: d.name,
     p_phone: phone,
-    p_email: d.email || null,
+    p_email: d.email || null, // only a real email is ever saved
     p_address: d.address,
     p_city: d.city,
     p_notes: d.notes || null,
@@ -102,7 +100,7 @@ export async function placeOrder(input: unknown): Promise<Result> {
 
   try {
     const url = await initializePaystack({
-      email: d.email,
+      email: payerEmail(d.email, phone, host), // a placeholder when the customer left it empty
       amountPesewas: row.new_total_pesewas,
       reference,
       callbackUrl: `${proto}://${host}/checkout/complete`,

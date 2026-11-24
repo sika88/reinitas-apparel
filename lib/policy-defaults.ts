@@ -11,7 +11,7 @@ export const POLICIES: Record<PolicySlug, { title: string; body: string }> = {
 ## What we collect
 
 - Your name, phone number and delivery address, so we can deliver your order and contact you about it.
-- Your email address, which is needed for online payment and optional for MoMo orders.
+- Your email address, if you choose to give one. It is optional and is used for your payment receipt.
 - The items you order and any note you add to your order.
 
 We do not see or store your card details. Online payments are handled by our payment provider, Paystack. If you pay by MoMo directly to us, we see the payment details your mobile money provider shows us, such as the sender’s name and number.
