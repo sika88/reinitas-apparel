@@ -13,7 +13,8 @@ const SORTS = [
   { key: "price-desc", label: "Price: high to low" },
 ] as const;
 type SortKey = (typeof SORTS)[number]["key"];
-type Search = { category?: string; sort?: string; sale?: string; size?: string };
+const PAGE_SIZE = 24;
+type Search = { category?: string; sort?: string; sale?: string; size?: string; page?: string };
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Search> }): Promise<Metadata> {
   const { category, sale } = await searchParams;
@@ -55,6 +56,9 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Sea
   let filtered = onlySale ? all.filter((p) => p.pricing.onSale) : all;
   if (activeSize) filtered = filtered.filter((p) => p.variants.some((v) => v.size === activeSize));
   const list = sortProducts(filtered, sort);
+  const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
+  const visible = list.slice(0, page * PAGE_SIZE);
+  const hasMore = list.length > visible.length;
 
   const build = (category: string | undefined, s: SortKey, sale: boolean, size?: string) => {
     const q = new URLSearchParams();
@@ -65,6 +69,8 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Sea
     const str = q.toString();
     return str ? `/shop?${str}` : "/shop";
   };
+  const base = build(sp.category, sort, onlySale, activeSize);
+  const moreHref = `${base}${base.includes("?") ? "&" : "?"}page=${page + 1}`;
 
   const pill = (isActive: boolean) =>
     `inline-flex min-h-10 items-center rounded-full border px-5 text-sm transition ${
@@ -160,16 +166,25 @@ export default async function Shop({ searchParams }: { searchParams: Promise<Sea
         {list.length} {list.length === 1 ? "piece" : "pieces"}
       </p>
 
-      {list.length === 0 ? (
+            {list.length === 0 ? (
         <p className="mt-10 text-sm text-muted">
           {onlySale ? "No items are on sale right now. Check back soon." : "Nothing here yet. Check back soon."}
         </p>
       ) : (
-        <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4">
-          {list.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
+        <>
+          <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4">
+            {visible.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+          {hasMore && (
+            <div className="mt-12 text-center">
+              <Link href={moreHref} scroll={false} className="btn-primary">
+                Load more
+              </Link>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

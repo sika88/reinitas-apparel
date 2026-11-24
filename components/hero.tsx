@@ -50,7 +50,7 @@ export default async function Hero({
             {settings.tagline || "Dresses, shoes and bags made to turn heads."}
           </h1>
           <p className="fade-up mt-6 max-w-lg text-base text-cream/85" style={delay(260)}>
-            Browse by size, pay online or with MoMo, and chat with us on WhatsApp whenever you need a hand.
+            Shop ladies dresses, shoes and bags online in Ghana. Browse by size, pay online or with MoMo, and chat with us on WhatsApp whenever you need a hand.
           </p>
           <div className="fade-up mt-9 flex flex-wrap gap-3" style={delay(400)}>
             <Link href="/shop" className="btn-light btn-shine">
