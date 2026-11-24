@@ -132,7 +132,7 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
         </label>
         <ImageField
           label="Home page banner"
-          hint="Optional background photo for the top of the home page."
+          hint="Optional single photo. For a moving slideshow of several photos, use Hero photos in the sidebar."
           value={v.hero_image_url}
           onChange={(u) => set("hero_image_url", u)}
           onError={setError}

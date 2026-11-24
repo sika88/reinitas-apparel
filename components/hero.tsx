@@ -1,3 +1,4 @@
+import HeroSlides from "@/components/hero-slides";
 import Image from "next/image";
 import Link from "next/link";
 import HeroArt from "@/components/hero-art";
@@ -8,6 +9,7 @@ import type { Category, Product, SiteSettings } from "@/lib/types";
 
 const delay = (ms: number) => ({ "--d": `${ms}ms` }) as React.CSSProperties;
 
+const slides = ["/hero/1.jpg", "/hero/2.jpg", "/hero/3.jpg", "/hero/4.jpg"];
 export default async function Hero({
   settings,
   categories,
@@ -24,21 +26,28 @@ export default async function Hero({
 
   return (
     <section className="relative isolate overflow-hidden bg-accent text-cream">
-      {hasHero ? (
-        <>
-          <Image src={settings.hero_image_url!} alt="" fill priority sizes="100vw" className="kenburns -z-10 object-cover" />
-          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-r from-accent/95 via-accent/65 to-accent/20" />
-        </>
-      ) : (
-        <div aria-hidden="true" className="hero-glow absolute inset-0 -z-10" />
-      )}
+      <HeroSlides />
+      <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden">
+        {slides.map((src, i) => (
+          <div key={src} className="hero-slide absolute inset-0" style={{ "--i": i } as React.CSSProperties}>
+            <Image src={src} alt="" fill priority={i === 0} sizes="100vw" quality={70} className="object-cover" />
+          </div>
+        ))}
+        {/* translucent burgundy tint so the photos show through */}
+        <div className="absolute inset-0 bg-linear-to-r from-accent/85 via-accent/60 to-accent/35" />
+      </div>
+
+      <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden">
+        <span className="orb orb-gold" />
+        <span className="orb orb-rose" />
+      </div>
 
       <div
         className={`container-page grid items-center gap-10 py-16 sm:py-24 lg:py-28 ${
           showPromo || showArt ? "md:grid-cols-[1.05fr_0.95fr]" : ""
         }`}
       >
-        <div>
+        <div className="glass rounded-3xl p-6 sm:p-10">
           <p className="fade-up flex items-center gap-3 text-xs uppercase tracking-[0.28em] text-gold" style={delay(0)}>
             <span aria-hidden="true" className="line-grow inline-block h-px w-10 bg-gold" style={delay(200)} />
             New season

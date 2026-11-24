@@ -216,3 +216,94 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .promo-swing, .promo-float { animation: none !important; transform: none !important; }
 }
+
+/* Frosted glass panel */
+.glass {
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.05));
+  border: 1px solid rgb(255 255 255 / 0.22);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.25);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+/* Soft drifting light behind the hero */
+.orb {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: 0.55;
+  will-change: transform;
+}
+.orb-gold {
+  width: 28rem;
+  height: 28rem;
+  top: -8rem;
+  left: -6rem;
+  background: radial-gradient(circle, #d6a85a, transparent 70%);
+  animation: orb-drift 18s ease-in-out infinite alternate;
+}
+.orb-rose {
+  width: 32rem;
+  height: 32rem;
+  bottom: -10rem;
+  right: -8rem;
+  background: radial-gradient(circle, #c4546f, transparent 70%);
+  animation: orb-drift 22s ease-in-out infinite alternate-reverse;
+}
+@keyframes orb-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(40px, 30px, 0) scale(1.15); }
+}
+
+/* Gentle float for the sale card */
+.float-y { animation: float-y 6s ease-in-out infinite; }
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb, .float-y { animation: none; }
+}
+
+/* Hero photo slideshow: 4 slides, 6s each */
+.hero-slide {
+  opacity: 0;
+  animation: hero-slide 24s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 6s);
+  will-change: opacity, transform;
+}
+@keyframes hero-slide {
+  0% { opacity: 0; transform: scale(1); }
+  5% { opacity: 1; }
+  25% { opacity: 1; }
+  30% { opacity: 0; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide { animation: none; }
+  .hero-slide:first-child { opacity: 1; }
+}
+/* ---------- Hero background slideshow ---------- */
+@keyframes hero-fade-2 { 0% { opacity: 0; } 8% { opacity: 1; } 50% { opacity: 1; } 58% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes hero-fade-3 { 0% { opacity: 0; } 6% { opacity: 1; } 33.333% { opacity: 1; } 39.333% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes hero-fade-4 { 0% { opacity: 0; } 5% { opacity: 1; } 25% { opacity: 1; } 30% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes hero-zoom {
+  from { transform: scale(1.03) translate3d(0, 0, 0); }
+  to { transform: scale(1.13) translate3d(-1.5%, -1%, 0); }
+}
+
+.hero-fade-2, .hero-fade-3, .hero-fade-4 {
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+.hero-fade-2 { animation-name: hero-fade-2; }
+.hero-fade-3 { animation-name: hero-fade-3; }
+.hero-fade-4 { animation-name: hero-fade-4; }
+.hero-zoom { animation: hero-zoom 32s ease-in-out infinite alternate; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide { animation: none !important; opacity: 0; }
+  .hero-slide:first-child { opacity: 1; }
+  .hero-zoom { animation: none !important; transform: none !important; }
+}

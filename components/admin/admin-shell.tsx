@@ -26,6 +26,7 @@ const NAV = [
   { href: "/admin/categories", label: "Categories", icon: <path d="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z" /> },
   { href: "/admin/sales", label: "Sales", icon: <path d="M3 12.5V4h8.5l9 9a1.5 1.5 0 0 1 0 2.1l-6.4 6.4a1.5 1.5 0 0 1-2.1 0L3 12.5ZM7.5 8h.01" /> },
   { href: "/admin/banner", label: "Banner", icon: <path d="M4 10v4h3l8 4V6L7 10H4ZM18.5 9a4 4 0 0 1 0 6" /> },
+  { href: "/admin/hero", label: "Hero photos", icon: <path d="M3 6h18v12H3V6Zm4 0v12m10-12v12M3 12h18" /> },
   { href: "/admin/promo", label: "Promo image", icon: <path d="M4 5h16v14H4V5Zm0 11l4.5-4.5 3 3L15 10l5 5M9 9h.01" /> },
   { href: "/admin/pages", label: "Pages", icon: <path d="M7 3h7l5 5v13H7V3Zm7 0v5h5M10 13h6M10 17h6" /> },
   {
