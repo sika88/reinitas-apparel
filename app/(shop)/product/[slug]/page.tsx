@@ -6,10 +6,9 @@ import Gallery from "@/components/gallery";
 import PriceTag from "@/components/price-tag";
 import SizePicker from "@/components/size-picker";
 import { getProductBySlug, getSettings } from "@/lib/queries";
+import { SITE_URL as siteUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 export async function generateMetadata({
   params,
@@ -19,7 +18,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const p = await getProductBySlug(slug);
   if (!p) return {};
-  const description = p.description.slice(0, 155) || undefined;
+  const size = p.category?.size_type !== "none" ? p.variants[0]?.size : undefined;
+  const description =
+  p.description.slice(0, 155) ||
+  `${p.name}${size ? ` in size ${size}` : ""}, available online in Ghana. Pay by card or MoMo.`;
   return {
     title: p.category?.size_type !== "none" && p.variants[0] ? `${p.name} (Size ${p.variants[0].size})` : p.name,
     description,
@@ -39,12 +41,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   const pricing = product.pricing;
   const inStock = product.variants.some((v) => v.stock > 0);
-
+  const size = product.category?.size_type !== "none" ? product.variants[0]?.size : undefined;
   // Structured data so Google can show the current price and availability
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
+    url: `${siteUrl}/product/${product.slug}`,
+    size,
     description: product.description || undefined,
     image: product.images.length ? product.images : undefined,
     category: product.category?.name,
@@ -59,11 +63,28 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     },
   };
 
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Shop", item: `${siteUrl}/shop` },
+      ...(product.category
+        ? [{ "@type": "ListItem", position: 3, name: product.category.name, item: `${siteUrl}/shop?category=${product.category.slug}` }]
+        : []),
+      { "@type": "ListItem", position: product.category ? 4 : 3, name: product.name },
+    ],
+  };
+
   return (
     <div className="container-page py-8 sm:py-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd).replace(/</g, "\\u003c") }}
       />
 
       <nav aria-label="Breadcrumb" className="text-sm text-muted">
